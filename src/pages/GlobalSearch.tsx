@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Package, MapPin } from 'lucide-react';
-import { collection, query, onSnapshot, getDoc, doc } from 'firebase/firestore';
+import { collection, query, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 
 interface SearchResult {

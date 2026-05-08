@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Scan, Search, Package, Settings, Plus, X } from 'lucide-react';
+import { Scan, Search, Package, Settings, Plus } from 'lucide-react';
 import { getTagColor } from './utils/tagColors';
 import { getWarrantyStatus } from './utils/warranty';
 import './index.css';
@@ -13,16 +13,13 @@ import SettingsPage from './pages/Settings';
 import { collection, query, onSnapshot } from 'firebase/firestore';
 import { db } from './firebase';
 import { useBoxes } from './hooks/useBoxes';
+import { useItems } from './hooks/useItems';
 
 const Home = () => {
   const { boxes, loading: boxesLoading } = useBoxes();
+  const { items: allItems } = useItems();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [allItems, setAllItems] = useState<any[]>([]);
-  const [loadingItems, setLoadingItems] = useState(true);
-
-  useEffect(() => {
-    // Fetch all items for global search
     const itemsQuery = query(collection(db, "items"));
     const unsubscribe = onSnapshot(itemsQuery, (snapshot) => {
       const itemsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));

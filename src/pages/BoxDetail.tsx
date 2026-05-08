@@ -121,25 +121,6 @@ const BoxDetail = () => {
     setEditTags(editTags.filter(t => t !== tagToRemove));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !id) return;
-
-    setUploading(true);
-    try {
-      const storageRef = ref(storage, `boxes/${id}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      await updateBox(id, box.name, box.room, box.tags || [], url);
-      setBox({ ...box, imageUrl: url });
-    } catch (err) {
-      console.error("Upload failed:", err);
-      alert("Photo upload failed. Did you enable Firebase Storage?");
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleDeleteBox = async () => {
     if (!id) return;
     if (window.confirm("Are you sure you want to delete this box and all its contents?")) {
@@ -548,7 +529,6 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({ item, showExpired, onShow
   const [warrantyExpire, setWarrantyExpire] = useState(item.warrantyExpire || '');
   const [saving, setSaving] = useState(false);
   const [uploadingType, setUploadingType] = useState<'item' | 'receipt' | null>(null);
-  const [saved, setSaved] = useState(false);
   const [imageUrl, setImageUrl] = useState(item.imageUrl || '');
   const [receiptUrl, setReceiptUrl] = useState(item.receiptUrl || '');
 
@@ -587,25 +567,6 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({ item, showExpired, onShow
     setTimeout(onClose, 300);
   };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'item' | 'receipt') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingType(type);
-    try {
-      const storageRef = ref(storage, `items/${item.id}_${type}`);
-      console.log(`Compressing modal ${type} image...`);
-      const compressedBlob = await compressImage(file);
-      await uploadBytes(storageRef, compressedBlob);
-      const url = await getDownloadURL(storageRef);
-      if (type === 'item') setImageUrl(url);
-      else setReceiptUrl(url);
-    } catch (err) {
-      console.error("Upload failed", err);
-    } finally {
-      setUploadingType(null);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

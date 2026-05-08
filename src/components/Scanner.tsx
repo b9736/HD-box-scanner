@@ -37,6 +37,7 @@ const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onScanFailure }) => {
 
       if (!scannerRef.current) {
         scannerRef.current = new Html5Qrcode(regionId, {
+          verbose: false,
           experimentalFeatures: {
             useBarCodeDetectorIfSupported: true
           }
