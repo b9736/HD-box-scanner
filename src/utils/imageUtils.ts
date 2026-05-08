@@ -43,3 +43,12 @@ export const compressImage = (file: File, maxWidth = 1200, quality = 0.7): Promi
     reader.onerror = (err) => reject(err);
   });
 };
+
+export const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(blob);
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+  });
+};

@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Printer, Edit3 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Printer, Edit3, Camera, X } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { getTagColor } from '../utils/tagColors';
 import { getWarrantyStatus } from '../utils/warranty';
-import { db, storage } from '../firebase';
+import { db } from '../firebase';
 import { useItems } from '../hooks/useItems';
 import { useBoxes } from '../hooks/useBoxes';
 import { useGlobalTags } from '../hooks/useGlobalTags';
 import { QRCodeCanvas } from 'qrcode.react';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { Camera, X } from 'lucide-react';
-import { compressImage } from '../utils/imageUtils';
+import { compressImage, blobToBase64 } from '../utils/imageUtils';
 
 const BoxDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -152,30 +150,24 @@ const BoxDetail = () => {
     setUploading(true);
     const { type, itemId } = context;
     uploadContextRef.current = null; // Clear context
-
     try {
-      console.log(`Starting ${type} upload...`);
       if (type === 'box') {
-        const storageRef = ref(storage, `boxes/${id}`);
-        console.log("Compressing box image...");
-        const compressedBlob = await compressImage(file);
-        await uploadBytes(storageRef, compressedBlob);
-        const url = await getDownloadURL(storageRef);
-        await updateBox(id!, box.name, box.room, box.tags || [], url);
-        setBox({ ...box, imageUrl: url });
+        console.log("Processing box image as Base64...");
+        const compressedBlob = await compressImage(file, 800, 0.6); // Slightly more compression for Firestore
+        const base64 = await blobToBase64(compressedBlob);
+        await updateBox(id!, box.name, box.room, box.tags || [], base64);
+        setBox({ ...box, imageUrl: base64 });
       } else {
-        const storageRef = ref(storage, `items/${itemId}_${type}`);
-        console.log(`Compressing ${type} image...`);
-        const compressedBlob = await compressImage(file);
-        await uploadBytes(storageRef, compressedBlob);
-        const url = await getDownloadURL(storageRef);
-        await updateItem(itemId!, { [type === 'item' ? 'imageUrl' : 'receiptUrl']: url });
+        console.log(`Processing ${type} image as Base64...`);
+        const compressedBlob = await compressImage(file, 800, 0.6);
+        const base64 = await blobToBase64(compressedBlob);
+        await updateItem(itemId!, { [type === 'item' ? 'imageUrl' : 'receiptUrl']: base64 });
         
         // If we are currently editing this item, update the editingItem state to reflect the change
         if (editingItem && editingItem.id === itemId) {
           setEditingItem({
             ...editingItem,
-            [type === 'item' ? 'imageUrl' : 'receiptUrl']: url
+            [type === 'item' ? 'imageUrl' : 'receiptUrl']: base64
           });
         }
       }
