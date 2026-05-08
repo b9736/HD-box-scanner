@@ -418,6 +418,7 @@ const BoxDetail = () => {
         <ItemEditModal 
           item={editingItem} 
           showExpired={showExpired}
+          isUploading={uploading}
           onShowExpiredChange={handleShowExpiredChange}
           onClose={() => setEditingItem(null)} 
           onUpdate={async (updates) => {
@@ -515,13 +516,22 @@ const ImageSourceModal: React.FC<{onSelect: (s: 'camera' | 'gallery') => void, o
 interface ItemEditModalProps {
   item: any;
   showExpired: boolean;
+  isUploading: boolean;
   onShowExpiredChange: (checked: boolean) => void;
   onClose: () => void;
   onUpdate: (updates: any) => Promise<void>;
   onImageRequest: (type: 'item' | 'receipt') => void;
 }
 
-const ItemEditModal: React.FC<ItemEditModalProps> = ({ item, showExpired, onShowExpiredChange, onClose, onUpdate, onImageRequest }) => {
+const ItemEditModal: React.FC<ItemEditModalProps> = ({ 
+  item, 
+  showExpired, 
+  isUploading,
+  onShowExpiredChange, 
+  onClose, 
+  onUpdate, 
+  onImageRequest 
+}) => {
   const [isClosing, setIsClosing] = useState(false);
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState(item.quantity || 1);
@@ -603,11 +613,11 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({ item, showExpired, onShow
           <div className="form-row-images">
             <div className="photo-box" onClick={() => handleImageRequest('item')}>
               {item.imageUrl || imageUrl ? <img src={imageUrl || item.imageUrl} /> : <Camera size={24} />}
-              <span>{uploadingType === 'item' ? '...' : 'Item Photo'}</span>
+              <span>{isUploading ? '...' : 'Item Photo'}</span>
             </div>
             <div className="photo-box" onClick={() => handleImageRequest('receipt')}>
               {item.receiptUrl || receiptUrl ? <img src={receiptUrl || item.receiptUrl} /> : <Printer size={24} />}
-              <span>{uploadingType === 'receipt' ? '...' : 'Receipt'}</span>
+              <span>{isUploading ? '...' : 'Receipt'}</span>
             </div>
           </div>
 
