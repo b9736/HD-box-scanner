@@ -20,14 +20,6 @@ const Home = () => {
   const { items: allItems } = useItems();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-    const itemsQuery = query(collection(db, "items"));
-    const unsubscribe = onSnapshot(itemsQuery, (snapshot) => {
-      const itemsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-      setAllItems(itemsData);
-      setLoadingItems(false);
-    });
-    return () => unsubscribe();
-  }, []);
 
   const filteredBoxes = boxes.filter(box => {
     const q = searchQuery.toLowerCase();
