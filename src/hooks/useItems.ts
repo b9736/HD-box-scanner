@@ -13,14 +13,14 @@ export interface Item {
   warrantyExpire?: string;
 }
 
-export const useItems = (boxId: string) => {
+export const useItems = (boxId?: string) => {
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!boxId) return;
-
-    const q = query(collection(db, "items"), where("boxId", "==", boxId));
+    const q = boxId 
+      ? query(collection(db, "items"), where("boxId", "==", boxId))
+      : query(collection(db, "items"));
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const itemData = snapshot.docs.map(doc => ({

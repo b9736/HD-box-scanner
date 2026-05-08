@@ -528,7 +528,6 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({ item, showExpired, onShow
   const [purchaseDate, setPurchaseDate] = useState(item.purchaseDate || '');
   const [warrantyExpire, setWarrantyExpire] = useState(item.warrantyExpire || '');
   const [saving, setSaving] = useState(false);
-  const [uploadingType, setUploadingType] = useState<'item' | 'receipt' | null>(null);
   const [imageUrl, setImageUrl] = useState(item.imageUrl || '');
   const [receiptUrl, setReceiptUrl] = useState(item.receiptUrl || '');
 

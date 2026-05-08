@@ -5,13 +5,10 @@ import { getTagColor } from './utils/tagColors';
 import { getWarrantyStatus } from './utils/warranty';
 import './index.css';
 
-// Placeholder Components
 import CreateBox from './pages/CreateBox';
 import ScanPage from './pages/ScanPage';
 import BoxDetail from './pages/BoxDetail';
 import SettingsPage from './pages/Settings';
-import { collection, query, onSnapshot } from 'firebase/firestore';
-import { db } from './firebase';
 import { useBoxes } from './hooks/useBoxes';
 import { useItems } from './hooks/useItems';
 
