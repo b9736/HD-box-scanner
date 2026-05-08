@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Clock } from 'lucide-react';
+import { ArrowLeft, Save, Clock, LogOut } from 'lucide-react';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -20,6 +22,13 @@ const Settings = () => {
     localStorage.setItem('defaultWarrantyUnit', warrantyUnit);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  };
+
+  const handleLogout = async () => {
+    if (window.confirm('Are you sure you want to log out?')) {
+      await signOut(auth);
+      navigate('/');
+    }
   };
 
   return (
@@ -95,6 +104,33 @@ const Settings = () => {
               <Save size={18} /> {saved ? 'Saved!' : 'Save Settings'}
             </button>
           </div>
+        </div>
+
+        <div className="settings-section" style={{ marginTop: '32px' }}>
+          <button 
+            onClick={handleLogout}
+            style={{ 
+              width: '100%',
+              padding: '16px',
+              borderRadius: '24px',
+              backgroundColor: 'rgba(255, 69, 58, 0.1)',
+              color: '#ff453a',
+              border: '1px solid rgba(255, 69, 58, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              fontSize: '16px',
+              fontWeight: '700',
+              cursor: 'pointer'
+            }}
+          >
+            <LogOut size={20} /> Log Out
+          </button>
+          
+          <p style={{ textAlign: 'center', marginTop: '16px', color: 'var(--text-secondary)', fontSize: '12px' }}>
+            Version 1.2.0 • Secured with Firebase
+          </p>
         </div>
       </div>
     </div>

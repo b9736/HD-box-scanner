@@ -9,8 +9,10 @@ import CreateBox from './pages/CreateBox';
 import ScanPage from './pages/ScanPage';
 import BoxDetail from './pages/BoxDetail';
 import SettingsPage from './pages/Settings';
+import Login from './pages/Login';
 import { useBoxes } from './hooks/useBoxes';
 import { useItems } from './hooks/useItems';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 const Home = () => {
   const { boxes, loading: boxesLoading } = useBoxes();
@@ -136,7 +138,8 @@ const Home = () => {
   );
 };
 
-function App() {
+const AppContent = () => {
+  const { user, loading } = useAuth();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const location = useLocation();
 
@@ -146,8 +149,20 @@ function App() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  if (loading) {
+    return (
+      <div className="loading-screen" style={{height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#000'}}>
+        <div className="loader"></div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login />;
+  }
+
   return (
-      <div className="app-container">
+    <div className="app-container">
         {!isMobile && (
           <aside className="sidebar">
             <div className="header-title" style={{marginBottom: '32px'}}>HD Scanner</div>
@@ -194,6 +209,14 @@ function App() {
           </nav>
         )}
       </div>
+  );
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

@@ -3,9 +3,6 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  optimizeDeps: {
-    include: ['firebase/storage'],
-  },
   plugins: [
     react(),
     VitePWA({
