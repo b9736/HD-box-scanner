@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Printer, Edit3, Camera, X } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Printer, Edit3, Camera, X, Star } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { getTagColor } from '../utils/tagColors';
 import { getWarrantyStatus } from '../utils/warranty';
@@ -30,6 +30,7 @@ const BoxDetail = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [fullscreenImage, setFullscreenImage] = useState<{images: string[], index: number} | null>(null);
   const [imageSourceModal, setImageSourceModal] = useState<{type: 'box' | 'item' | 'receipt', itemId?: string} | null>(null);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [isClosingDiscard, setIsClosingDiscard] = useState(false);
@@ -203,38 +204,36 @@ const BoxDetail = () => {
       </header>
 
       {isEditing ? (
-        <div className="edit-box-form-wrapper">
-        <div className="edit-box-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-          <h2 className="section-header" style={{ margin: 0 }}>Edit Box Info</h2>
+        <div className="edit-box-form-wrapper compact">
+        <div className="edit-box-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h2 className="section-header" style={{ margin: 0, fontSize: '18px' }}>Edit Box Info</h2>
           <div className="edit-actions" style={{ marginTop: 0 }}>
-            <button type="button" onClick={handleUpdateBox} className="submit-btn" style={{ padding: '8px 24px', borderRadius: '12px', fontSize: '14px' }}>Save</button>
-            <button type="button" onClick={handleCancelEdit} className="cancel-btn" style={{ fontSize: '14px' }}>Cancel</button>
+            <button type="button" onClick={handleUpdateBox} className="submit-btn" style={{ padding: '6px 20px', borderRadius: '10px', fontSize: '13px' }}>Save</button>
+            <button type="button" onClick={handleCancelEdit} className="cancel-btn" style={{ fontSize: '13px' }}>Cancel</button>
           </div>
         </div>
-        <form onSubmit={handleUpdateBox} className="edit-box-form">
-            <div className="form-group">
-              <label>Box Name</label>
-              <input 
-                type="text" 
-                value={editName} 
-                onChange={(e) => setEditName(e.target.value)} 
-                required 
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck="false"
-              />
-            </div>
-            <div className="form-group">
-              <label>Location</label>
-              <input 
-                type="text" 
-                placeholder="e.g. Attic, Garage" 
-                value={editRoom} 
-                onChange={(e) => setEditRoom(e.target.value)} 
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck="false"
-              />
+        <form onSubmit={handleUpdateBox} className="edit-box-form compact">
+            <div className="form-row-compact">
+              <div className="form-group flex-2">
+                <label>Box Name</label>
+                <input 
+                  type="text" 
+                  value={editName} 
+                  onChange={(e) => setEditName(e.target.value)} 
+                  required 
+                  autoComplete="off"
+                />
+              </div>
+              <div className="form-group flex-1">
+                <label>Location</label>
+                <input 
+                  type="text" 
+                  placeholder="Attic..." 
+                  value={editRoom} 
+                  onChange={(e) => setEditRoom(e.target.value)} 
+                  autoComplete="off"
+                />
+              </div>
             </div>
             <div className="form-group">
               <label>Tags</label>
@@ -337,19 +336,23 @@ const BoxDetail = () => {
             <div className="box-gallery-scroll" style={{ padding: 0 }}>
               {box.images && box.images.length > 0 ? (
                 box.images.map((img: string, idx: number) => (
-                  <div key={idx} className="gallery-item">
-                    <img src={img} alt="" className="box-photo-thumb" onClick={() => window.open(img, '_blank')} />
-                    <button 
-                      className="delete-photo-btn" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const newImages = box.images.filter((_: any, i: number) => i !== idx);
-                        updateBox(id!, { images: newImages, imageUrl: newImages[0] || '' });
-                        setBox({ ...box, images: newImages, imageUrl: newImages[0] || '' });
-                      }}
-                    >
-                      <X size={10} />
-                    </button>
+                  <div key={idx} className={`gallery-item ${box.imageUrl === img ? 'is-thumbnail' : ''}`}>
+                    <img src={img} alt="" className="box-photo-thumb" onClick={() => setFullscreenImage({images: box.images, index: idx})} />
+                    <div className="gallery-item-actions">
+                      <button 
+                        className="action-dot-btn delete" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const newImages = box.images.filter((_: any, i: number) => i !== idx);
+                          const isRemovingThumbnail = box.imageUrl === img;
+                          const newThumb = isRemovingThumbnail ? (newImages[0] || '') : box.imageUrl;
+                          updateBox(id!, { images: newImages, imageUrl: newThumb });
+                          setBox({ ...box, images: newImages, imageUrl: newThumb });
+                        }}
+                      >
+                        <X size={10} />
+                      </button>
+                    </div>
                   </div>
                 ))
               ) : null}
@@ -396,7 +399,17 @@ const BoxDetail = () => {
             items.map(item => (
               <div key={item.id} className="item-row" onClick={() => setEditingItem(item)}>
                 <div className="item-row-left">
-                  {item.imageUrl && <img src={item.imageUrl} className="item-mini-photo" alt="" />}
+                  {item.imageUrl && (
+                    <img 
+                      src={item.imageUrl} 
+                      className="item-mini-photo" 
+                      alt="" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFullscreenImage({ images: item.images || [item.imageUrl], index: 0 });
+                      }} 
+                    />
+                  )}
                   <div className="item-info">
                     <span className="item-name">{item.name}</span>
                     <div className="item-meta-row">
@@ -449,6 +462,7 @@ const BoxDetail = () => {
           onImageRequest={(type) => {
             setImageSourceModal({type, itemId: editingItem.id});
           }}
+          onPreviewImage={(images, index) => setFullscreenImage({images, index})}
         />
       )}
 
@@ -479,6 +493,21 @@ const BoxDetail = () => {
         capture="environment" 
         onChange={(e) => handleImageSelect(e)} 
       />
+
+      {/* Fullscreen Gallery */}
+      {fullscreenImage && (
+        <FullscreenGallery 
+          images={fullscreenImage.images} 
+          initialIndex={fullscreenImage.index} 
+          onClose={() => setFullscreenImage(null)} 
+          currentThumbnail={box.imageUrl}
+          onSetThumbnail={(url) => {
+            const newUrl = box.imageUrl === url ? '' : url;
+            updateBox(id!, { imageUrl: newUrl });
+            setBox({ ...box, imageUrl: newUrl });
+          }}
+        />
+      )}
 
       {/* Discard Changes Modal */}
       {showDiscardModal && (
@@ -536,6 +565,7 @@ interface ItemEditModalProps {
   onClose: () => void;
   onUpdate: (updates: any) => Promise<void>;
   onImageRequest: (type: 'item' | 'receipt') => void;
+  onPreviewImage: (images: string[], index: number) => void;
 }
 
 const ItemEditModal: React.FC<ItemEditModalProps> = ({ 
@@ -545,7 +575,8 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({
   onShowExpiredChange, 
   onClose, 
   onUpdate, 
-  onImageRequest 
+  onImageRequest,
+  onPreviewImage
 }) => {
   const [isClosing, setIsClosing] = useState(false);
   const [name, setName] = useState(item.name);
@@ -619,8 +650,13 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({
   return (
     <div className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
       <div className={`modal-content ${isClosing ? 'closing' : ''}`} onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>Edit Item</h3>
+        <div className="modal-header sticky-header">
+          <div className="modal-header-left">
+            <h3>Edit Item</h3>
+            <button className="submit-btn compact-save" type="submit" disabled={saving} onClick={handleSubmit}>
+              {saving ? '...' : 'Save'}
+            </button>
+          </div>
           <button className="close-btn" type="button" onClick={handleClose}>Close</button>
         </div>
         
@@ -630,7 +666,7 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({
             <div className="modal-gallery-scroll">
               {(item.images || []).map((img: string, idx: number) => (
                 <div key={idx} className="modal-gallery-item">
-                  <img src={img} alt="" onClick={() => window.open(img, '_blank')} />
+                  <img src={img} alt="" onClick={() => onPreviewImage(item.images, idx)} />
                   <button type="button" className="delete-photo-btn" onClick={() => {
                     const newImages = item.images.filter((_: any, i: number) => i !== idx);
                     onUpdate({ ...item, images: newImages, imageUrl: newImages[0] || '' });
@@ -650,7 +686,7 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({
             <div className="modal-gallery-scroll">
               {(item.receipts || []).map((img: string, idx: number) => (
                 <div key={idx} className="modal-gallery-item">
-                  <img src={img} alt="" onClick={() => window.open(img, '_blank')} />
+                  <img src={img} alt="" onClick={() => onPreviewImage(item.receipts, idx)} />
                   <button type="button" className="delete-photo-btn" onClick={() => {
                     const newReceipts = item.receipts.filter((_: any, i: number) => i !== idx);
                     onUpdate({ ...item, receipts: newReceipts, receiptUrl: newReceipts[0] || '' });
@@ -725,11 +761,90 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({
             </label>
           </div>
 
-          <button type="submit" className="submit-btn" disabled={saving}>
-            {saving ? 'Saving...' : 'Save Details'}
-          </button>
+          {/* Bottom button removed as it's now in the sticky header */}
         </form>
       </div>
+    </div>
+  );
+};
+
+const FullscreenGallery: React.FC<{
+  images: string[], 
+  initialIndex: number, 
+  onClose: () => void,
+  onSetThumbnail?: (url: string) => void,
+  currentThumbnail?: string
+}> = ({ images, initialIndex, onClose, onSetThumbnail, currentThumbnail }) => {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      const scrollAmount = currentIndex * scrollRef.current.offsetWidth;
+      scrollRef.current.scrollTo({ left: scrollAmount, behavior: 'auto' });
+    }
+  }, []);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const scrollLeft = e.currentTarget.scrollLeft;
+    const width = e.currentTarget.offsetWidth;
+    const newIndex = Math.round(scrollLeft / width);
+    if (newIndex !== currentIndex) {
+      setCurrentIndex(newIndex);
+    }
+  };
+
+  const navigate = (dir: number) => {
+    const nextIndex = Math.max(0, Math.min(images.length - 1, currentIndex + dir));
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ 
+        left: nextIndex * scrollRef.current.offsetWidth, 
+        behavior: 'smooth' 
+      });
+    }
+  };
+
+  return (
+    <div className="fullscreen-overlay" onClick={onClose}>
+      <button className="fullscreen-close" onClick={onClose}><X size={28} /></button>
+      
+      {images.length > 1 && (
+        <>
+          <button className="nav-arrow left" onClick={(e) => { e.stopPropagation(); navigate(-1); }} style={{ opacity: currentIndex === 0 ? 0.3 : 1 }}>
+            <ArrowLeft size={32} />
+          </button>
+          <button className="nav-arrow right" onClick={(e) => { e.stopPropagation(); navigate(1); }} style={{ opacity: currentIndex === images.length - 1 ? 0.3 : 1 }}>
+            <ArrowLeft size={32} style={{ transform: 'rotate(180deg)' }} />
+          </button>
+        </>
+      )}
+
+      <div className="fullscreen-scroll" ref={scrollRef} onScroll={handleScroll} onClick={e => e.stopPropagation()}>
+        {images.map((img, idx) => (
+          <div key={idx} className="fullscreen-slide">
+            <img src={img} alt="" />
+            {onSetThumbnail && (
+              <button 
+                className={`fullscreen-star ${currentThumbnail === img ? 'active' : ''}`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSetThumbnail(img);
+                }}
+              >
+                <Star size={28} fill={currentThumbnail === img ? "currentColor" : "none"} />
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {images.length > 1 && (
+        <div className="gallery-dots">
+          {images.map((_, idx) => (
+            <div key={idx} className={`dot ${idx === currentIndex ? 'active' : ''}`} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

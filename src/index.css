@@ -312,6 +312,13 @@ body {
   align-items: center;
   justify-content: center;
   border-radius: 14px;
+  overflow: hidden;
+}
+
+.box-row-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .box-row-content {
@@ -797,7 +804,7 @@ body {
 .item-edit-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
 .form-row-images {
@@ -1753,15 +1760,15 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 /* Modal Gallery Styles */
 .gallery-section {
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 .gallery-section label {
   display: block;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-secondary);
-  margin-bottom: 12px;
+  margin-bottom: 6px;
 }
 
 .modal-gallery-scroll {
@@ -1774,8 +1781,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 .modal-gallery-item {
   position: relative;
   flex-shrink: 0;
-  width: 100px;
-  height: 100px;
+  width: 75px;
+  height: 75px;
   border-radius: 12px;
   overflow: hidden;
   background: var(--surface-hover);
@@ -1789,8 +1796,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 .add-photo-box {
   flex-shrink: 0;
-  width: 100px;
-  height: 100px;
+  width: 75px;
+  height: 75px;
   border-radius: 12px;
   border: 2px dashed rgba(255, 255, 255, 0.1);
   display: flex;
@@ -1804,5 +1811,350 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 .add-photo-box:hover {
   border-color: var(--primary-color);
-  color: var(--primary-color);
+}
+
+/* Fullscreen Gallery Overlay */
+.fullscreen-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  z-index: 3000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.3s ease;
+}
+
+.fullscreen-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(28, 28, 30, 0.9) !important;
+  border: none !important;
+  outline: none !important;
+  color: white !important;
+  width: 44px;
+  height: 44px;
+  border-radius: 50% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3010;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+}
+
+.fullscreen-scroll {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.fullscreen-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.fullscreen-slide {
+  position: relative;
+  flex-shrink: 0;
+  width: 100%;
+  height: 100%;
+  scroll-snap-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.fullscreen-slide img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.nav-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.05);
+  border: none;
+  color: white;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: none; /* Mobile first: hide arrows */
+  align-items: center;
+  justify-content: center;
+  z-index: 3005;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+@media (min-width: 768px) {
+  .nav-arrow {
+    display: flex;
+  }
+}
+
+.nav-arrow:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.nav-arrow.left { left: 20px; }
+.nav-arrow.right { right: 20px; }
+
+.gallery-dots {
+  position: absolute;
+  bottom: 40px;
+  display: flex;
+  gap: 8px;
+  z-index: 3005;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transition: all 0.3s;
+}
+
+.dot.active {
+  background: white;
+  width: 24px;
+  border-radius: 10px;
+}
+
+/* Compact Edit Form */
+.edit-box-form-wrapper.compact {
+  padding: 16px;
+  background: var(--surface-color);
+  border-radius: 20px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 24px;
+}
+
+.form-row-compact {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.flex-1 { flex: 1; }
+.flex-2 { flex: 2; }
+
+.edit-box-form.compact .form-group label {
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.edit-box-form.compact input {
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+/* Gallery Item Actions & Thumbnail Badge */
+.gallery-item.is-thumbnail {
+  border: 2px solid var(--primary-color);
+}
+
+.gallery-item-actions {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 5;
+}
+
+.action-dot-btn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+  background: rgba(28, 28, 30, 0.9);
+  color: #fff;
+  transition: all 0.2s;
+}
+
+.action-dot-btn.active {
+  background: var(--primary-color);
+  color: white;
+}
+
+.action-dot-btn.delete {
+  background: rgba(255, 69, 58, 0.9);
+}
+
+.action-dot-btn:hover {
+  transform: scale(1.1);
+}
+
+.fullscreen-star {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 44px;
+  height: 44px;
+  background: rgba(28, 28, 30, 0.9) !important;
+  border: none !important;
+  outline: none !important;
+  color: #fff !important;
+  border-radius: 50% !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 3020;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  transition: all 0.2s;
+}
+
+.fullscreen-star.active {
+  background: #fff !important;
+  color: #000 !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+
+.fullscreen-star:active {
+  transform: scale(0.9);
+}
+
+/* Sticky Modal Header */
+.modal-header.sticky-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(28, 28, 30, 0.98) !important;
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-color);
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.modal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.compact-save {
+  margin: 0 !important;
+  background: var(--primary-color) !important;
+  color: white !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  border-radius: 10px !important;
+  font-weight: 600 !important;
+  font-size: 14px !important;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.compact-save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.compact-save:active {
+  transform: scale(0.95);
+}
+
+/* Modal Overhaul */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.modal-content {
+  background: var(--surface-color);
+  width: 100%;
+  max-width: 500px;
+  max-height: 85vh;
+  border-radius: 28px;
+  position: relative;
+  overflow: hidden; /* Fixes content bleed at the top */
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+  border: 1px solid var(--border-color);
+  animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.item-edit-form {
+  padding: 0 20px 20px 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form-group {
+  margin-bottom: 8px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.form-group input {
+  width: 100%;
+  background-color: var(--surface-hover);
+  border: 1px solid var(--border-color);
+  padding: 10px 14px;
+  border-radius: 12px;
+  color: var(--text-primary);
+  font-size: 15px;
+  outline: none;
+}
+
+.form-group input:focus {
+  border-color: var(--primary-color);
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }

@@ -66,7 +66,13 @@ const Home = () => {
             {filteredBoxes.map((box) => (
               <div key={box.id} className="box-item-row" onClick={() => navigate(`/box/${box.id}`)}>
                 <div className="box-row-main">
-                  <div className="box-row-icon">📦</div>
+                  <div className="box-row-icon">
+                    {box.imageUrl ? (
+                      <img src={box.imageUrl} alt="" className="box-row-icon-img" />
+                    ) : (
+                      "📦"
+                    )}
+                  </div>
                   <div className="box-row-content">
                     <div className="box-row-title">
                       {box.name}
