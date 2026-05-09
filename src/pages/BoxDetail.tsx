@@ -406,7 +406,7 @@ const BoxDetail = () => {
                       alt="" 
                       onClick={(e) => {
                         e.stopPropagation();
-                        setFullscreenImage({ images: item.images || [item.imageUrl], index: 0 });
+                        setFullscreenImage({ images: item.images || [item.imageUrl as string], index: 0 });
                       }} 
                     />
                   )}
@@ -666,7 +666,7 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({
             <div className="modal-gallery-scroll">
               {(item.images || []).map((img: string, idx: number) => (
                 <div key={idx} className="modal-gallery-item">
-                  <img src={img} alt="" onClick={() => onPreviewImage(item.images, idx)} />
+                  <img src={img} alt="" onClick={() => onPreviewImage(item.images || [], idx)} />
                   <button type="button" className="delete-photo-btn" onClick={() => {
                     const newImages = item.images.filter((_: any, i: number) => i !== idx);
                     onUpdate({ ...item, images: newImages, imageUrl: newImages[0] || '' });
@@ -686,7 +686,7 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({
             <div className="modal-gallery-scroll">
               {(item.receipts || []).map((img: string, idx: number) => (
                 <div key={idx} className="modal-gallery-item">
-                  <img src={img} alt="" onClick={() => onPreviewImage(item.receipts, idx)} />
+                  <img src={img} alt="" onClick={() => onPreviewImage(item.receipts || [], idx)} />
                   <button type="button" className="delete-photo-btn" onClick={() => {
                     const newReceipts = item.receipts.filter((_: any, i: number) => i !== idx);
                     onUpdate({ ...item, receipts: newReceipts, receiptUrl: newReceipts[0] || '' });
