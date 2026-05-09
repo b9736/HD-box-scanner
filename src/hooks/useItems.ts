@@ -9,6 +9,8 @@ export interface Item {
   boxId: string;
   imageUrl?: string;
   receiptUrl?: string;
+  images?: string[];
+  receipts?: string[];
   purchaseDate?: string;
   warrantyExpire?: string;
 }

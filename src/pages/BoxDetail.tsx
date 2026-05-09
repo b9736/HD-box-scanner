@@ -65,7 +65,7 @@ const BoxDetail = () => {
   const handleUpdateBox = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!id || !editName) return;
-    await updateBox(id, editName, editRoom, editTags);
+    await updateBox(id, { name: editName, room: editRoom, tags: editTags });
     setBox({ ...box, name: editName, room: editRoom, tags: editTags });
     setIsEditing(false);
   };
@@ -140,44 +140,48 @@ const BoxDetail = () => {
   };
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+    const files = Array.from(e.target.files || []);
     const context = uploadContextRef.current;
-    if (!file || !context) {
-      console.log("No file or context", { file, context });
-      return;
-    }
+    if (files.length === 0 || !context) return;
 
     setUploading(true);
     const { type, itemId } = context;
-    uploadContextRef.current = null; // Clear context
+    uploadContextRef.current = null; 
+
     try {
-      if (type === 'box') {
-        console.log("Processing box image as Base64...");
-        const compressedBlob = await compressImage(file, 800, 0.6); // Slightly more compression for Firestore
-        const base64 = await blobToBase64(compressedBlob);
-        await updateBox(id!, box.name, box.room, box.tags || [], base64);
-        setBox({ ...box, imageUrl: base64 });
-      } else {
-        console.log(`Processing ${type} image as Base64...`);
+      const processedImages = await Promise.all(files.map(async file => {
         const compressedBlob = await compressImage(file, 800, 0.6);
-        const base64 = await blobToBase64(compressedBlob);
-        await updateItem(itemId!, { [type === 'item' ? 'imageUrl' : 'receiptUrl']: base64 });
+        return await blobToBase64(compressedBlob);
+      }));
+
+      if (type === 'box') {
+        const currentImages = box.images || [];
+        const newImages = [...currentImages, ...processedImages];
+        await updateBox(id!, { images: newImages, imageUrl: newImages[0] });
+        setBox({ ...box, images: newImages, imageUrl: newImages[0] });
+      } else {
+        // Item or receipt
+        const isReceipt = type === 'receipt';
+        const field = isReceipt ? 'receipts' : 'images';
+        const urlField = isReceipt ? 'receiptUrl' : 'imageUrl';
         
-        // If we are currently editing this item, update the editingItem state to reflect the change
-        if (editingItem && editingItem.id === itemId) {
-          setEditingItem({
-            ...editingItem,
-            [type === 'item' ? 'imageUrl' : 'receiptUrl']: base64
-          });
+        const currentItem = items.find(i => i.id === itemId);
+        if (currentItem) {
+          const existingList = (currentItem as any)[field] || [];
+          const newList = [...existingList, ...processedImages];
+          const updates = { [field]: newList, [urlField]: newList[0] };
+          await updateItem(itemId!, updates);
+          
+          if (editingItem && editingItem.id === itemId) {
+            setEditingItem({ ...editingItem, ...updates });
+          }
         }
       }
-      console.log("Upload complete!");
     } catch (err: any) {
       console.error("Upload failed:", err);
       alert("Upload failed: " + (err.message || "Unknown error"));
     } finally {
       setUploading(false);
-      // Clear input values so the same file can be picked again if needed
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
     }
@@ -299,41 +303,60 @@ const BoxDetail = () => {
           </form>
         </div>
       ) : (
-        <div className="box-hero">
-          <div className="box-photo-container no-print">
-            {box.imageUrl ? (
-              <img src={box.imageUrl} alt={box.name} className="box-photo" />
-            ) : (
-              <div className="photo-upload-label" onClick={() => setImageSourceModal({type: 'box'})}>
-                {uploading ? "..." : <Camera size={18} />}
+        <div className="box-hero" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '16px' }}>
+          <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div className="box-hero-info" style={{ padding: 0 }}>
+              <h1 className="box-detail-title">Box: {box.name}</h1>
+              <div className="box-room-large">{box.room || 'No Room'}</div>
+              <div className="box-row-tags" style={{marginTop: '4px'}}>
+                {box.tags?.map((tag: string) => {
+                  const colors = getTagColor(tag);
+                  return (
+                    <span 
+                      key={tag} 
+                      className="row-tag" 
+                      style={{ 
+                        fontSize: '10px', 
+                        padding: '2px 8px',
+                        backgroundColor: colors.bg,
+                        color: colors.text
+                      }}
+                    >
+                      #{tag}
+                    </span>
+                  );
+                })}
               </div>
-            )}
-          </div>
-          <div className="box-hero-info">
-            <h1 className="box-detail-title">Box: {box.name}</h1>
-            <div className="box-room-large">{box.room || 'No Room'}</div>
-            <div className="box-row-tags" style={{marginTop: '4px'}}>
-              {box.tags?.map((tag: string) => {
-                const colors = getTagColor(tag);
-                return (
-                  <span 
-                    key={tag} 
-                    className="row-tag" 
-                    style={{ 
-                      fontSize: '10px', 
-                      padding: '2px 8px',
-                      backgroundColor: colors.bg,
-                      color: colors.text
-                    }}
-                  >
-                    #{tag}
-                  </span>
-                );
-              })}
+            </div>
+            <div className="box-qr-card" style={{ padding: 0, marginTop: 0 }}>
+              <QRCodeCanvas value={box.id} size={48} bgColor="#FFFFFF" fgColor="#000000" level="L" includeMargin={false} />
             </div>
           </div>
-          <div className="box-qr-card">
-            <QRCodeCanvas value={box.id} size={36} bgColor="#FFFFFF" fgColor="#000000" level="L" includeMargin={false} />
+
+          <div className="box-gallery-container no-print" style={{ margin: 0 }}>
+            <div className="box-gallery-scroll" style={{ padding: 0 }}>
+              {box.images && box.images.length > 0 ? (
+                box.images.map((img: string, idx: number) => (
+                  <div key={idx} className="gallery-item">
+                    <img src={img} alt="" className="box-photo-thumb" onClick={() => window.open(img, '_blank')} />
+                    <button 
+                      className="delete-photo-btn" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const newImages = box.images.filter((_: any, i: number) => i !== idx);
+                        updateBox(id!, { images: newImages, imageUrl: newImages[0] || '' });
+                        setBox({ ...box, images: newImages, imageUrl: newImages[0] || '' });
+                      }}
+                    >
+                      <X size={10} />
+                    </button>
+                  </div>
+                ))
+              ) : null}
+              <div className="add-photo-square" onClick={() => setImageSourceModal({type: 'box'})}>
+                {uploading ? "..." : <Plus size={20} />}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -602,14 +625,43 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({
         </div>
         
         <form onSubmit={handleSubmit} className="item-edit-form">
-          <div className="form-row-images">
-            <div className="photo-box" onClick={() => handleImageRequest('item')}>
-              {item.imageUrl || imageUrl ? <img src={imageUrl || item.imageUrl} /> : <Camera size={24} />}
-              <span>{isUploading ? '...' : 'Item Photo'}</span>
+          <div className="gallery-section">
+            <label>Item Photos</label>
+            <div className="modal-gallery-scroll">
+              {(item.images || []).map((img: string, idx: number) => (
+                <div key={idx} className="modal-gallery-item">
+                  <img src={img} alt="" onClick={() => window.open(img, '_blank')} />
+                  <button type="button" className="delete-photo-btn" onClick={() => {
+                    const newImages = item.images.filter((_: any, i: number) => i !== idx);
+                    onUpdate({ ...item, images: newImages, imageUrl: newImages[0] || '' });
+                  }}>
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+              <div className="add-photo-box" onClick={() => handleImageRequest('item')}>
+                {isUploading ? '...' : <Camera size={20} />}
+              </div>
             </div>
-            <div className="photo-box" onClick={() => handleImageRequest('receipt')}>
-              {item.receiptUrl || receiptUrl ? <img src={receiptUrl || item.receiptUrl} /> : <Printer size={24} />}
-              <span>{isUploading ? '...' : 'Receipt'}</span>
+          </div>
+
+          <div className="gallery-section">
+            <label>Receipts & Docs</label>
+            <div className="modal-gallery-scroll">
+              {(item.receipts || []).map((img: string, idx: number) => (
+                <div key={idx} className="modal-gallery-item">
+                  <img src={img} alt="" onClick={() => window.open(img, '_blank')} />
+                  <button type="button" className="delete-photo-btn" onClick={() => {
+                    const newReceipts = item.receipts.filter((_: any, i: number) => i !== idx);
+                    onUpdate({ ...item, receipts: newReceipts, receiptUrl: newReceipts[0] || '' });
+                  }}>
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+              <div className="add-photo-box" onClick={() => handleImageRequest('receipt')}>
+                {isUploading ? '...' : <Plus size={20} />}
+              </div>
             </div>
           </div>
 

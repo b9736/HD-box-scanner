@@ -1674,3 +1674,135 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
+
+/* Gallery & Multi-image Styles */
+.box-gallery-container {
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.box-gallery-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 4px 12px;
+  scroll-behavior: smooth;
+  scrollbar-width: none; /* Hide scrollbar for clean look */
+}
+
+.box-gallery-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.gallery-item {
+  position: relative;
+  flex-shrink: 0;
+  width: 90px;
+  height: 90px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  background: var(--surface-color);
+}
+
+.box-photo-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer;
+}
+
+.delete-photo-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(255, 69, 58, 0.9);
+  color: white;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  z-index: 2;
+}
+
+.add-photo-square {
+  flex-shrink: 0;
+  width: 90px;
+  height: 90px;
+  border-radius: 12px;
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.add-photo-square:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: rgba(62, 130, 247, 0.05);
+}
+
+/* Modal Gallery Styles */
+.gallery-section {
+  margin-bottom: 24px;
+}
+
+.gallery-section label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.modal-gallery-scroll {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.modal-gallery-item {
+  position: relative;
+  flex-shrink: 0;
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-hover);
+}
+
+.modal-gallery-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.add-photo-box {
+  flex-shrink: 0;
+  width: 100px;
+  height: 100px;
+  border-radius: 12px;
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.add-photo-box:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}

@@ -8,6 +8,8 @@ export interface Box {
   room: string;
   tags: string[];
   createdAt: any;
+  images?: string[];
+  imageUrl?: string;
 }
 
 export const useBoxes = () => {
@@ -46,13 +48,11 @@ export const useBoxes = () => {
     }
   };
 
-  const updateBox = async (id: string, name: string, room: string, tags: string[], imageUrl?: string) => {
+  const updateBox = async (id: string, updates: Partial<Box>) => {
     try {
       await setDoc(doc(db, "boxes", id), {
-        name,
-        room,
-        tags,
-        ...(imageUrl && { imageUrl }),
+        ...updates,
+        updatedAt: serverTimestamp(),
       }, { merge: true });
     } catch (err) {
       console.error("Error updating box:", err);
