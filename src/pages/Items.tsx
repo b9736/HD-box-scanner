@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Search, Package, Plus, ChevronRight, X, LayoutGrid, List, Sliders, Tag, Edit2, Trash2, CheckSquare, Square, Tags, CheckCircle2 } from 'lucide-react';
+import { Search, Package, Plus, ChevronRight, LayoutGrid, List, Sliders, Tag, Edit2, Trash2, CheckSquare, Square, Tags, CheckCircle2 } from 'lucide-react';
 import { useItems } from '../hooks/useItems';
 import { useBoxes } from '../hooks/useBoxes';
 import { useItemTags } from '../hooks/useItemTags';
@@ -171,16 +171,7 @@ const ItemsPage = () => {
     setBatchModal(null);
   };
 
-  const handleTagToggle = (tag: string) => {
-    const currentTags = newItemTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
-    if (currentTags.includes(tag)) {
-      const newTags = currentTags.filter((t: string) => t !== tag);
-      setNewItemTags(newTags.join(', '));
-    } else {
-      const newTags = [...currentTags, tag];
-      setNewItemTags(newTags.join(', '));
-    }
-  };
+
 
   const handleAddNewTag = async (e: React.FormEvent) => {
     e.preventDefault();

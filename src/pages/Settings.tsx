@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Clock, LogOut, X } from 'lucide-react';
+import { ArrowLeft, Save, Clock, LogOut } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 
