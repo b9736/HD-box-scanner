@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, setDoc, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, setDoc, deleteDoc, doc, where } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 
 export interface Box {
   id: string;
@@ -10,6 +10,7 @@ export interface Box {
   createdAt: any;
   images?: string[];
   imageUrl?: string;
+  uid: string;
 }
 
 export const useBoxes = () => {
@@ -17,7 +18,18 @@ export const useBoxes = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, "boxes"), orderBy("createdAt", "desc"));
+    const user = auth.currentUser;
+    if (!user) {
+      setBoxes([]);
+      setLoading(false);
+      return;
+    }
+
+    const q = query(
+      collection(db, "boxes"), 
+      where("uid", "==", user.uid),
+      orderBy("createdAt", "desc")
+    );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const boxData = snapshot.docs.map(doc => ({
@@ -32,14 +44,18 @@ export const useBoxes = () => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [auth.currentUser]);
 
   const createBox = async (name: string, room: string, tags: string[]) => {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not authenticated");
+
     try {
       await addDoc(collection(db, "boxes"), {
         name,
         room,
         tags,
+        uid: user.uid,
         createdAt: serverTimestamp(),
       });
     } catch (err) {

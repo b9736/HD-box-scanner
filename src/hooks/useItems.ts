@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 
 export interface Item {
   id: string;
@@ -15,6 +15,7 @@ export interface Item {
   warrantyExpire?: string;
   description?: string;
   tags?: string[];
+  uid: string;
 }
 
 export const useItems = (boxId?: string) => {
@@ -22,9 +23,26 @@ export const useItems = (boxId?: string) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = boxId 
-      ? query(collection(db, "items"), where("boxId", "==", boxId))
-      : query(collection(db, "items"));
+    const user = auth.currentUser;
+    if (!user) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
+    let q;
+    if (boxId) {
+      q = query(
+        collection(db, "items"), 
+        where("uid", "==", user.uid),
+        where("boxId", "==", boxId)
+      );
+    } else {
+      q = query(
+        collection(db, "items"), 
+        where("uid", "==", user.uid)
+      );
+    }
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const itemData = snapshot.docs.map(doc => ({
@@ -39,9 +57,12 @@ export const useItems = (boxId?: string) => {
     });
 
     return () => unsubscribe();
-  }, [boxId]);
+  }, [boxId, auth.currentUser]);
 
   const addItem = async (name: string, quantity: number = 1, overrideBoxId?: string, description?: string, tags: string[] = []) => {
+    const user = auth.currentUser;
+    if (!user) throw new Error("User not authenticated");
+
     try {
       await addDoc(collection(db, "items"), {
         name,
@@ -49,6 +70,7 @@ export const useItems = (boxId?: string) => {
         description: description || '',
         tags,
         boxId: overrideBoxId || boxId,
+        uid: user.uid,
         createdAt: serverTimestamp(),
       });
     } catch (err) {
