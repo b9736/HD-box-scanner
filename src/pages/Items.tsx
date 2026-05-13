@@ -54,7 +54,7 @@ const ItemsPage = () => {
                          item.tags?.some((t: string) => t.toLowerCase().includes(q));
     
     const matchesTags = selectedTags.length === 0 || 
-                       selectedTags.every(tag => item.tags?.includes(tag));
+                       selectedTags.some(tag => item.tags?.includes(tag));
     
     return matchesSearch && matchesTags;
   });
@@ -301,9 +301,9 @@ const ItemsPage = () => {
                 key={tag} 
                 className={`filter-pill ${isActive ? 'active' : ''}`}
                 style={{ 
-                  backgroundColor: isActive ? colors.bg : `${colors.text}15`, 
-                  color: isActive ? colors.text : colors.text,
-                  borderColor: isActive ? colors.bg : 'transparent',
+                  backgroundColor: isActive ? colors.text : colors.bg, 
+                  color: isActive ? '#ffffff' : colors.text,
+                  border: isActive ? 'none' : `1px solid ${colors.bg}`,
                   opacity: isActive ? 1 : 0.8
                 }}
                 onClick={() => {

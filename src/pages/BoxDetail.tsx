@@ -343,9 +343,11 @@ const BoxDetail = () => {
                 })}
               </div>
             </div>
-            <div className="box-qr-card" style={{ padding: 0, marginTop: 0 }}>
-              <QRCodeCanvas value={box.id} size={48} bgColor="#FFFFFF" fgColor="#000000" level="L" includeMargin={false} />
-            </div>
+            {box.hasQRCode && (
+              <div className="box-qr-card" style={{ padding: 0, marginTop: 0 }}>
+                <QRCodeCanvas value={box.id} size={48} bgColor="#FFFFFF" fgColor="#000000" level="L" includeMargin={false} />
+              </div>
+            )}
           </div>
 
           <div className="box-gallery-container no-print" style={{ margin: 0 }}>
@@ -445,6 +447,30 @@ const BoxDetail = () => {
                           })()
                         )}
                     </div>
+                    {item.tags && item.tags.length > 0 && (
+                      <div className="item-row-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                        {item.tags.map(tag => {
+                          const colors = getTagColor(tag);
+                          return (
+                            <span 
+                              key={tag} 
+                              className="item-tag-pill" 
+                              style={{ 
+                                fontSize: '9px', 
+                                padding: '1px 6px', 
+                                backgroundColor: colors.bg, 
+                                color: colors.text,
+                                borderRadius: '4px',
+                                textTransform: 'uppercase',
+                                fontWeight: '700'
+                              }}
+                            >
+                              {tag}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="item-row-actions">

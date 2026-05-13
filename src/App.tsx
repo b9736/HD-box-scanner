@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Scan, Search, Package, Settings, Plus } from 'lucide-react';
+import { Scan, Search, Package, Settings, Plus, Sliders } from 'lucide-react';
 import { getTagColor } from './utils/tagColors';
 import { getWarrantyStatus } from './utils/warranty';
 import './index.css';
@@ -20,12 +20,23 @@ const Home = () => {
   const { items: allItems } = useItems();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Only show tags that exist on items
+  const itemTags = Array.from(new Set(allItems.flatMap(item => item.tags || []))).sort();
 
   const filteredBoxes = boxes.filter(box => {
     const q = searchQuery.toLowerCase();
-    return box.name?.toLowerCase().includes(q) || 
-           box.room?.toLowerCase().includes(q) || 
-           box.tags?.some(t => t.toLowerCase().includes(q));
+    const matchesSearch = box.name?.toLowerCase().includes(q) || 
+                         box.room?.toLowerCase().includes(q) || 
+                         box.tags?.some(t => t.toLowerCase().includes(q));
+
+    // Filter by items within this box
+    const boxItems = allItems.filter(item => item.boxId === box.id);
+    const matchesTags = selectedTags.length === 0 || 
+                       selectedTags.some(tag => boxItems.some(item => item.tags?.includes(tag)));
+
+    return matchesSearch && matchesTags;
   });
 
   const filteredItems = searchQuery.length > 0 ? allItems.filter(item => {
@@ -54,6 +65,42 @@ const Home = () => {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+        </div>
+      </div>
+      <div className="filter-scroll-container">
+        <div className="filter-scroll">
+          <div className="filter-settings-btn" style={{ opacity: 0.5 }}>
+            <Sliders size={18} />
+          </div>
+          <button 
+            className={`filter-pill ${selectedTags.length === 0 ? 'active' : ''}`}
+            onClick={() => setSelectedTags([])}
+          >
+            ALL
+          </button>
+          {itemTags.map(tag => {
+            const colors = getTagColor(tag);
+            const isActive = selectedTags.includes(tag);
+            return (
+              <button 
+                key={tag} 
+                className={`filter-pill ${isActive ? 'active' : ''}`}
+                style={{ 
+                  backgroundColor: isActive ? colors.text : colors.bg, 
+                  color: isActive ? '#ffffff' : colors.text,
+                  border: isActive ? 'none' : `1px solid ${colors.bg}`,
+                  opacity: isActive ? 1 : 0.8
+                }}
+                onClick={() => {
+                  setSelectedTags(prev => 
+                    prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+                  );
+                }}
+              >
+                {tag.toUpperCase()}
+              </button>
+            );
+          })}
         </div>
       </div>
 

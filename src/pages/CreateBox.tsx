@@ -10,6 +10,7 @@ const CreateBox = () => {
   const [room, setRoom] = useState('');
   const [tagInput, setTagInput] = useState('');
   const [tags, setTags] = useState<string[]>([]);
+  const [hasQRCode, setHasQRCode] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const handleAddTag = () => {
@@ -29,7 +30,7 @@ const CreateBox = () => {
 
     setSaving(true);
     try {
-      await createBox(name, room, tags);
+      await createBox(name, room, tags, hasQRCode);
       navigate('/');
     } catch (err) {
       console.error(err);
@@ -98,6 +99,35 @@ const CreateBox = () => {
               </span>
             ))}
           </div>
+        </div>
+
+        <div className="form-group" style={{ marginTop: '12px' }}>
+          <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
+            <div 
+              style={{ 
+                width: '24px', 
+                height: '24px', 
+                borderRadius: '6px', 
+                border: '2px solid var(--border-color)',
+                backgroundColor: hasQRCode ? 'var(--primary-color)' : 'transparent',
+                borderColor: hasQRCode ? 'var(--primary-color)' : 'var(--border-color)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.2s'
+              }}
+              onClick={() => setHasQRCode(!hasQRCode)}
+            >
+              {hasQRCode && <Plus size={16} color="white" style={{ transform: 'rotate(45deg)' }} />}
+            </div>
+            <span style={{ fontSize: '15px', color: 'var(--text-primary)' }}>Create QR code for this box</span>
+            <input 
+              type="checkbox" 
+              checked={hasQRCode} 
+              onChange={(e) => setHasQRCode(e.target.checked)} 
+              style={{ display: 'none' }}
+            />
+          </label>
         </div>
 
         <button type="submit" className="submit-btn" disabled={saving}>

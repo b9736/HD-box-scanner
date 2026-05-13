@@ -12,6 +12,7 @@ export interface Box {
   images?: string[];
   imageUrl?: string;
   uid: string;
+  hasQRCode?: boolean;
 }
 
 export const useBoxes = () => {
@@ -48,7 +49,7 @@ export const useBoxes = () => {
     return () => unsubscribe();
   }, [user]);
 
-  const createBox = async (name: string, room: string, tags: string[]) => {
+  const createBox = async (name: string, room: string, tags: string[], hasQRCode: boolean = false) => {
     if (!user) throw new Error("User not authenticated");
 
     try {
@@ -57,6 +58,7 @@ export const useBoxes = () => {
         room,
         tags,
         uid: user.uid,
+        hasQRCode,
         createdAt: serverTimestamp(),
       });
     } catch (err) {
