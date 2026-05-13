@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Search, Package, Plus, ChevronRight, LayoutGrid, List, Sliders, Tag, Edit2, Trash2, CheckSquare, Square, Tags, CheckCircle2 } from 'lucide-react';
+import { Search, Package, Plus, ChevronRight, X, LayoutGrid, List, Sliders, Tag, Edit2, Trash2, CheckSquare, Square, Tags, CheckCircle2 } from 'lucide-react';
 import { useItems } from '../hooks/useItems';
 import { useBoxes } from '../hooks/useBoxes';
 import { useItemTags } from '../hooks/useItemTags';
