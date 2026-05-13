@@ -51,6 +51,14 @@ export const useItems = (boxId?: string) => {
         id: doc.id,
         ...doc.data()
       })) as Item[];
+      
+      // Sort in memory to avoid needing a composite index
+      itemData.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        return dateB - dateA;
+      });
+
       setItems(itemData);
       setLoading(false);
     }, (error) => {

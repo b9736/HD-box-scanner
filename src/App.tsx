@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
 import { Scan, Search, Package, Settings, Plus, Sliders } from 'lucide-react';
 import { getTagColor } from './utils/tagColors';
@@ -14,6 +14,58 @@ import { useBoxes } from './hooks/useBoxes';
 import { useItems } from './hooks/useItems';
 import ItemsPage from './pages/Items';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+
+class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("Critical Application Error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ 
+          height: '100vh', 
+          display: 'flex', 
+          flexDirection: 'column',
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          background: '#0d0d0d',
+          color: '#fff',
+          padding: '20px',
+          textAlign: 'center'
+        }}>
+          <h2 style={{ color: '#ef4444' }}>Something went wrong</h2>
+          <p style={{ opacity: 0.7, margin: '10px 0 20px' }}>The application encountered an unexpected error. This is often caused by database sync issues.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '12px 24px',
+              background: 'var(--primary-color, #3e82f7)',
+              border: 'none',
+              borderRadius: '8px',
+              color: '#fff',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}
+          >
+            Reload Application
+          </button>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 const Home = () => {
   const { boxes, loading: boxesLoading } = useBoxes();
@@ -267,9 +319,11 @@ const AppContent = () => {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }
 

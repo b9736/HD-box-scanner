@@ -30,8 +30,7 @@ export const useBoxes = () => {
     setLoading(true);
     const q = query(
       collection(db, "boxes"), 
-      where("uid", "==", user.uid),
-      orderBy("createdAt", "desc")
+      where("uid", "==", user.uid)
     );
     
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -39,6 +38,14 @@ export const useBoxes = () => {
         id: doc.id,
         ...doc.data()
       })) as Box[];
+      
+      // Sort in memory to avoid needing a composite index in Firestore
+      boxData.sort((a, b) => {
+        const dateA = a.createdAt?.toDate?.() || new Date(0);
+        const dateB = b.createdAt?.toDate?.() || new Date(0);
+        return dateB - dateA;
+      });
+
       setBoxes(boxData);
       setLoading(false);
     }, (error) => {

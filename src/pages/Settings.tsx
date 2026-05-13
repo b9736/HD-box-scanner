@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Clock, LogOut, Database, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
-import { collection, query, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 
 const Settings = () => {
