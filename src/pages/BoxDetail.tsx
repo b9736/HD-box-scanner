@@ -542,7 +542,7 @@ const ImageSourceModal: React.FC<{onSelect: (s: 'camera' | 'gallery') => void, o
   };
 
   return (
-    <div className={`modal-overlay action-sheet-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
+    <div className={`action-sheet-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
       <div className={`action-sheet ${isClosing ? 'closing' : ''}`} onClick={e => e.stopPropagation()}>
         <button className="action-btn" onClick={() => handleSelect('camera')}>
           <Camera size={20} /> Take Photo (Camera)
@@ -583,6 +583,7 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({
   const [quantity, setQuantity] = useState(item.quantity || 1);
   const [purchaseDate, setPurchaseDate] = useState(item.purchaseDate || '');
   const [warrantyExpire, setWarrantyExpire] = useState(item.warrantyExpire || '');
+  const [description, setDescription] = useState(item.description || '');
   const [saving, setSaving] = useState(false);
   const [imageUrl, setImageUrl] = useState(item.imageUrl || '');
   const [receiptUrl, setReceiptUrl] = useState(item.receiptUrl || '');
@@ -632,6 +633,7 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({
         quantity: Number(quantity),
         purchaseDate,
         warrantyExpire,
+        description,
         imageUrl,
         receiptUrl
       });
@@ -704,6 +706,17 @@ const ItemEditModal: React.FC<ItemEditModalProps> = ({
           <div className="form-group">
             <label>Item Name</label>
             <input type="text" value={name} onChange={e => setName(e.target.value)} required />
+          </div>
+
+          <div className="form-group">
+            <label>Description (Optional)</label>
+            <textarea 
+              value={description} 
+              onChange={e => setDescription(e.target.value)} 
+              placeholder="Notes, specs, or where exactly in the box..."
+              className="premium-textarea"
+              rows={3}
+            />
           </div>
 
           <div className="form-group">

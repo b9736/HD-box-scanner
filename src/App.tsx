@@ -12,6 +12,7 @@ import SettingsPage from './pages/Settings';
 import Login from './pages/Login';
 import { useBoxes } from './hooks/useBoxes';
 import { useItems } from './hooks/useItems';
+import ItemsPage from './pages/Items';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 
 const Home = () => {
@@ -174,6 +175,7 @@ const AppContent = () => {
             <div className="header-title" style={{marginBottom: '32px'}}>HD Scanner</div>
             <nav className="side-nav">
               <Link to="/" className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}><Package size={20} /> <span>Boxes</span></Link>
+              <Link to="/items" className={`nav-item ${location.pathname === '/items' ? 'active' : ''}`}><Search size={20} /> <span>Items</span></Link>
               <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`}><Settings size={20} /> <span>Settings</span></Link>
             </nav>
           </aside>
@@ -190,6 +192,7 @@ const AppContent = () => {
           <main>
             <Routes>
               <Route path="/" element={<Home />} />
+              <Route path="/items" element={<ItemsPage />} />
               <Route path="/create" element={<CreateBox />} />
               <Route path="/scan" element={<ScanPage />} />
               <Route path="/box/:id" element={<BoxDetail />} />
@@ -203,6 +206,10 @@ const AppContent = () => {
             <Link to="/" className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}>
               <Package size={24} />
               <span>Boxes</span>
+            </Link>
+            <Link to="/items" className={`nav-item ${location.pathname === '/items' ? 'active' : ''}`}>
+              <Search size={24} />
+              <span>Items</span>
             </Link>
             <Link to="/scan" className={`nav-item ${location.pathname === '/scan' ? 'active' : ''}`}>
               <Scan size={24} />

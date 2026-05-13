@@ -1,0 +1,3 @@
+# Global Rules
+
+- Always start the development server with the IP address exposed (e.g., use `vite --host`) to allow network access.

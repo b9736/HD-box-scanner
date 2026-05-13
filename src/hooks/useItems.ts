@@ -13,6 +13,7 @@ export interface Item {
   receipts?: string[];
   purchaseDate?: string;
   warrantyExpire?: string;
+  description?: string;
 }
 
 export const useItems = (boxId?: string) => {
@@ -39,12 +40,13 @@ export const useItems = (boxId?: string) => {
     return () => unsubscribe();
   }, [boxId]);
 
-  const addItem = async (name: string, quantity: number = 1) => {
+  const addItem = async (name: string, quantity: number = 1, overrideBoxId?: string, description?: string) => {
     try {
       await addDoc(collection(db, "items"), {
         name,
         quantity,
-        boxId,
+        description: description || '',
+        boxId: overrideBoxId || boxId,
         createdAt: serverTimestamp(),
       });
     } catch (err) {
