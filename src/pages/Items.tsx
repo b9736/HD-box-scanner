@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Package, Plus, ChevronRight, X, Camera, LayoutGrid, List } from 'lucide-react';
-import { useItems, Item } from '../hooks/useItems';
+import { Search, Package, Plus, ChevronRight, X, LayoutGrid, List } from 'lucide-react';
+import { useItems } from '../hooks/useItems';
 import { useBoxes } from '../hooks/useBoxes';
 import { getWarrantyStatus } from '../utils/warranty';
-import { getTagColor } from '../utils/tagColors';
 
 const ItemsPage = () => {
   const navigate = useNavigate();

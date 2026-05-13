@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Printer, Edit3, Camera, X, Star } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Printer, Edit3, Camera, X, Star, Image } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { getTagColor } from '../utils/tagColors';
 import { getWarrantyStatus } from '../utils/warranty';
@@ -537,8 +537,7 @@ const ImageSourceModal: React.FC<{onSelect: (s: 'camera' | 'gallery') => void, o
   };
 
   const handleSelect = (s: 'camera' | 'gallery') => {
-    setIsClosing(true);
-    setTimeout(() => onSelect(s), 300);
+    onSelect(s);
   };
 
   return (
@@ -548,7 +547,7 @@ const ImageSourceModal: React.FC<{onSelect: (s: 'camera' | 'gallery') => void, o
           <Camera size={20} /> Take Photo (Camera)
         </button>
         <button className="action-btn" onClick={() => handleSelect('gallery')}>
-          <Printer size={20} /> Upload from Gallery
+          <Image size={20} /> Upload from Gallery
         </button>
         <div className="action-divider" />
         <button className="close-btn" style={{width: '100%', padding: '16px'}} onClick={handleClose}>Close</button>
