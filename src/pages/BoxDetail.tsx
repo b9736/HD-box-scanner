@@ -50,20 +50,36 @@ const BoxDetail = () => {
   useEffect(() => {
     const fetchBox = async () => {
       if (!id) return;
-      const docRef = doc(db, "boxes", id);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setBox({ id: docSnap.id, ...data });
-        setEditName(data.name);
-        setEditRoom(data.room);
-        setEditTags(data.tags || []);
-      } else {
+      
+      const user = auth.currentUser;
+      if (!user) return; // Wait for auth to initialize
+
+      try {
+        const docRef = doc(db, "boxes", id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          // Security check: ensure this box belongs to the current user
+          if (data.uid !== user.uid) {
+            console.error("Access denied: UID mismatch");
+            navigate('/');
+            return;
+          }
+          
+          setBox({ id: docSnap.id, ...data });
+          setEditName(data.name);
+          setEditRoom(data.room);
+          setEditTags(data.tags || []);
+        } else {
+          navigate('/');
+        }
+      } catch (err) {
+        console.error("Error fetching box:", err);
         navigate('/');
       }
     };
     fetchBox();
-  }, [id, navigate]);
+  }, [id, navigate, auth.currentUser]);
 
   const handleUpdateBox = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
