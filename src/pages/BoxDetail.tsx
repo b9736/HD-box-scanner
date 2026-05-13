@@ -151,7 +151,7 @@ const BoxDetail = () => {
 
     try {
       const processedImages = await Promise.all(files.map(async file => {
-        const compressedBlob = await compressImage(file, 800, 0.6);
+        const compressedBlob = await compressImage(file, 600, 0.4);
         return await blobToBase64(compressedBlob);
       }));
 
