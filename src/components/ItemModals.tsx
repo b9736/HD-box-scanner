@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Camera, Image, Plus, ArrowLeft, Star, Tag as TagIcon } from 'lucide-react';
+import { X, Camera, Image, Plus, ArrowLeft, Star } from 'lucide-react';
 import { getWarrantyStatus } from '../utils/warranty';
 import { useItemTags } from '../hooks/useItemTags';
 import { getTagColor } from '../utils/tagColors';
@@ -104,7 +104,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
         purchaseDate,
         warrantyExpire,
         description,
-        tags: itemTags.split(',').map(t => t.trim()).filter(t => t !== ''),
+        tags: itemTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== ''),
         imageUrl,
         receiptUrl
       });
@@ -117,9 +117,9 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   };
 
   const handleTagToggle = (tag: string) => {
-    const currentTags = itemTags.split(',').map(t => t.trim()).filter(t => t !== '');
+    const currentTags = itemTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
     if (currentTags.includes(tag)) {
-      const newTags = currentTags.filter(t => t !== tag);
+      const newTags = currentTags.filter((t: string) => t !== tag);
       setItemTags(newTags.join(', '));
     } else {
       const newTags = [...currentTags, tag];
@@ -209,7 +209,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
               <div className="tag-suggestions">
                 {allAvailableTags.map(tag => {
                   const colors = getTagColor(tag);
-                  const isSelected = itemTags.split(',').map(t => t.trim()).includes(tag);
+                  const isSelected = itemTags.split(',').map((t: string) => t.trim()).includes(tag);
                   return (
                     <button
                       key={tag}

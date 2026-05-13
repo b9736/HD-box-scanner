@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useRef } from 'react';
 import { Search, Package, Plus, ChevronRight, X, LayoutGrid, List, Sliders, Tag, Edit2, Trash2 } from 'lucide-react';
 import { useItems } from '../hooks/useItems';
 import { useBoxes } from '../hooks/useBoxes';
@@ -8,10 +7,8 @@ import { getWarrantyStatus } from '../utils/warranty';
 import { getTagColor } from '../utils/tagColors';
 import { ItemEditModal, ImageSourceModal, FullscreenGallery } from '../components/ItemModals';
 import { compressImage, blobToBase64 } from '../utils/imageUtils';
-import { useRef } from 'react';
 
 const ItemsPage = () => {
-  const navigate = useNavigate();
   const { items, loading: itemsLoading, addItem, updateItem } = useItems();
   const { boxes } = useBoxes();
   const { tags: globalItemTags, addTag } = useItemTags();
@@ -46,7 +43,7 @@ const ItemsPage = () => {
     const q = searchQuery.toLowerCase();
     const matchesSearch = item.name?.toLowerCase().includes(q) || 
                          item.description?.toLowerCase().includes(q) ||
-                         item.tags?.some(t => t.toLowerCase().includes(q));
+                         item.tags?.some((t: string) => t.toLowerCase().includes(q));
     
     const matchesTag = !selectedTag || item.tags?.includes(selectedTag);
     
@@ -58,7 +55,7 @@ const ItemsPage = () => {
     if (!newItemName || !selectedBoxId) return;
 
     try {
-      const tagsArray = newItemTags.split(',').map(t => t.trim()).filter(t => t !== '');
+      const tagsArray = newItemTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
       await addItem(newItemName, 1, selectedBoxId, newItemDescription, tagsArray);
       setIsAddingItem(false);
       setNewItemName('');
@@ -108,9 +105,9 @@ const ItemsPage = () => {
   };
 
   const handleTagToggle = (tag: string) => {
-    const currentTags = newItemTags.split(',').map(t => t.trim()).filter(t => t !== '');
+    const currentTags = newItemTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
     if (currentTags.includes(tag)) {
-      const newTags = currentTags.filter(t => t !== tag);
+      const newTags = currentTags.filter((t: string) => t !== tag);
       setNewItemTags(newTags.join(', '));
     } else {
       const newTags = [...currentTags, tag];
@@ -378,7 +375,7 @@ const ItemsPage = () => {
                   <div className="tag-suggestions">
                     {globalItemTags.map(tag => {
                       const colors = getTagColor(tag);
-                      const isSelected = newItemTags.split(',').map(t => t.trim()).includes(tag);
+                      const isSelected = newItemTags.split(',').map((t: string) => t.trim()).includes(tag);
                       return (
                         <button
                           key={tag}
