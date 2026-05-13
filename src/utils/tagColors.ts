@@ -15,7 +15,8 @@ export const getTagColor = (tagName: string) => {
   
   return {
     bg: `hsla(${h}, ${s}%, ${l}%, 0.15)`,
-    text: `hsl(${h}, ${s}%, ${l + 25}%)`,
+    activeBg: `hsla(${h}, ${s}%, ${l}%, 0.35)`,
+    text: `hsl(${h}, ${s}%, ${l + 35}%)`,
     border: `hsla(${h}, ${s}%, ${l}%, 0.4)`
   };
 };

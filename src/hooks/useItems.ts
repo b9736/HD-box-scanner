@@ -14,6 +14,7 @@ export interface Item {
   purchaseDate?: string;
   warrantyExpire?: string;
   description?: string;
+  tags?: string[];
 }
 
 export const useItems = (boxId?: string) => {
@@ -40,12 +41,13 @@ export const useItems = (boxId?: string) => {
     return () => unsubscribe();
   }, [boxId]);
 
-  const addItem = async (name: string, quantity: number = 1, overrideBoxId?: string, description?: string) => {
+  const addItem = async (name: string, quantity: number = 1, overrideBoxId?: string, description?: string, tags: string[] = []) => {
     try {
       await addDoc(collection(db, "items"), {
         name,
         quantity,
         description: description || '',
+        tags,
         boxId: overrideBoxId || boxId,
         createdAt: serverTimestamp(),
       });

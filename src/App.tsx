@@ -182,13 +182,6 @@ const AppContent = () => {
         )}
 
         <div className="main-wrapper" style={{flex: 1, display: 'flex', flexDirection: 'column'}}>
-          <header className="app-header">
-            <div className="header-title">{isMobile ? 'HD Box Scanner' : 'Dashboard'}</div>
-            <Link to="/settings" style={{ color: 'inherit' }}>
-              <Settings size={24} className="header-icon" />
-            </Link>
-          </header>
-
           <main>
             <Routes>
               <Route path="/" element={<Home />} />
