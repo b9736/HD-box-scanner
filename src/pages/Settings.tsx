@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Clock, LogOut } from 'lucide-react';
+import { ArrowLeft, Save, Clock, LogOut, Database, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
-import { auth } from '../firebase';
+import { collection, query, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -10,6 +11,8 @@ const Settings = () => {
   const [warrantyUnit, setWarrantyUnit] = useState('years');
   const [saved, setSaved] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const [migrationStatus, setMigrationStatus] = useState<{done: boolean, count: number} | null>(null);
 
   useEffect(() => {
     const savedValue = localStorage.getItem('defaultWarrantyValue') || '2';
@@ -28,6 +31,53 @@ const Settings = () => {
   const handleLogout = async () => {
     await signOut(auth);
     navigate('/');
+  };
+
+  const handleMigrateData = async () => {
+    const user = auth.currentUser;
+    if (!user) return;
+    
+    setIsMigrating(true);
+    let migratedCount = 0;
+
+    try {
+      // 1. Migrate Boxes
+      const boxesSnap = await getDocs(collection(db, "boxes"));
+      for (const boxDoc of boxesSnap.docs) {
+        const data = boxDoc.data();
+        if (!data.uid) {
+          await updateDoc(doc(db, "boxes", boxDoc.id), { uid: user.uid });
+          migratedCount++;
+        }
+      }
+
+      // 2. Migrate Items
+      const itemsSnap = await getDocs(collection(db, "items"));
+      for (const itemDoc of itemsSnap.docs) {
+        const data = itemDoc.data();
+        if (!data.uid) {
+          await updateDoc(doc(db, "items", itemDoc.id), { uid: user.uid });
+          migratedCount++;
+        }
+      }
+
+      // 3. Migrate Tags
+      const tagsSnap = await getDocs(collection(db, "item_tags"));
+      for (const tagDoc of tagsSnap.docs) {
+        const data = tagDoc.data();
+        if (!data.uid) {
+          await updateDoc(doc(db, "item_tags", tagDoc.id), { uid: user.uid });
+          migratedCount++;
+        }
+      }
+
+      setMigrationStatus({ done: true, count: migratedCount });
+    } catch (err) {
+      console.error("Migration failed:", err);
+      alert("Migration failed. Please check your connection.");
+    } finally {
+      setIsMigrating(false);
+    }
   };
 
   return (
@@ -102,6 +152,67 @@ const Settings = () => {
             >
               <Save size={18} /> {saved ? 'Saved!' : 'Save Settings'}
             </button>
+          </div>
+        </div>
+
+        {/* Data Migration Section */}
+        <div className="settings-section" style={{ marginTop: '32px' }}>
+          <h3 className="section-header" style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Database size={18} /> Data Management
+          </h3>
+          
+          <div className="settings-card" style={{ 
+            backgroundColor: 'var(--surface-color)', 
+            padding: '24px', 
+            borderRadius: '24px',
+            border: '1px solid var(--border-color)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px'
+          }}>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+              <div style={{ padding: '8px', borderRadius: '10px', backgroundColor: 'rgba(255, 159, 10, 0.1)' }}>
+                <ShieldAlert size={20} color="#ff9f0a" />
+              </div>
+              <div>
+                <h4 style={{ fontSize: '15px', marginBottom: '4px' }}>Rescue Legacy Data</h4>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '13px', lineHeight: '1.4' }}>
+                  If your boxes or items are missing after the security update, use this tool to claim them. 
+                  This will associate all "ownerless" data with your account.
+                </p>
+              </div>
+            </div>
+
+            {migrationStatus?.done ? (
+              <div style={{ 
+                marginTop: '12px', 
+                padding: '12px', 
+                backgroundColor: 'rgba(50, 215, 75, 0.1)', 
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                color: '#32d74b',
+                fontSize: '14px'
+              }}>
+                <CheckCircle2 size={18} /> Found and rescued {migrationStatus.count} items!
+              </div>
+            ) : (
+              <button 
+                onClick={handleMigrateData}
+                disabled={isMigrating}
+                className="submit-btn" 
+                style={{ 
+                  marginTop: '12px', 
+                  width: '100%',
+                  backgroundColor: 'transparent',
+                  border: '1px solid var(--primary-color)',
+                  color: 'var(--primary-color)'
+                }}
+              >
+                {isMigrating ? 'Searching for data...' : 'Claim Legacy Data'}
+              </button>
+            )}
           </div>
         </div>
 
