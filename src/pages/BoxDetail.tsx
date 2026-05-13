@@ -25,6 +25,7 @@ const BoxDetail = () => {
   const [editName, setEditName] = useState('');
   const [editRoom, setEditRoom] = useState('');
   const [editTags, setEditTags] = useState<string[]>([]);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [newTag, setNewTag] = useState('');
   
   const [newItemName, setNewItemName] = useState('');
@@ -123,10 +124,8 @@ const BoxDetail = () => {
 
   const handleDeleteBox = async () => {
     if (!id) return;
-    if (window.confirm("Are you sure you want to delete this box and all its contents?")) {
-      await deleteBox(id);
-      navigate('/');
-    }
+    await deleteBox(id);
+    navigate('/');
   };
 
   const handlePrint = () => {
@@ -200,7 +199,7 @@ const BoxDetail = () => {
         <div className="header-actions">
           <Printer size={20} className="header-icon" onClick={handlePrint} />
           <Edit3 size={20} className="header-icon" onClick={() => setIsEditing(!isEditing)} />
-          <Trash2 size={20} className="header-icon" onClick={handleDeleteBox} style={{color: '#ff453a'}} />
+          <Trash2 size={20} className="header-icon" onClick={() => setShowDeleteConfirm(true)} style={{color: '#ff453a'}} />
         </div>
       </header>
 
@@ -521,6 +520,24 @@ const BoxDetail = () => {
             <div className="action-sheet-options">
               <button className="option-btn destructive" onClick={handleConfirmDiscard}>Discard Changes</button>
               <button className="option-btn" onClick={handleCancelDiscard}>Keep Editing</button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Delete Box Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="action-sheet-overlay" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="action-sheet" onClick={e => e.stopPropagation()}>
+            <div className="action-sheet-header">
+              <h3>Delete Box?</h3>
+              <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px'}}>
+                Are you sure you want to delete this box and all its contents? This action cannot be undone.
+              </p>
+            </div>
+            <div className="action-sheet-options">
+              <button className="option-btn destructive" onClick={handleDeleteBox}>Delete Everything</button>
+              <button className="option-btn" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
             </div>
           </div>
         </div>

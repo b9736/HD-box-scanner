@@ -59,8 +59,10 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   const [purchaseDate, setPurchaseDate] = useState(item.purchaseDate || '');
   const [warrantyExpire, setWarrantyExpire] = useState(item.warrantyExpire || '');
   const [description, setDescription] = useState(item.description || '');
-  const [itemTags, setItemTags] = useState(item.tags?.join(', ') || '');
+  const [selectedTags, setSelectedTags] = useState<string[]>(item.tags || []);
+  const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [imageUrl, setImageUrl] = useState(item.imageUrl || '');
   const [receiptUrl, setReceiptUrl] = useState(item.receiptUrl || '');
   const { tags: allAvailableTags } = useItemTags();
@@ -89,6 +91,23 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
     }
   };
 
+  const hasChanges = 
+    name !== item.name || 
+    Number(quantity) !== (item.quantity || 1) || 
+    purchaseDate !== (item.purchaseDate || '') ||
+    warrantyExpire !== (item.warrantyExpire || '') ||
+    description !== (item.description || '') ||
+    JSON.stringify([...selectedTags].sort()) !== JSON.stringify([...(item.tags || [])].sort()) ||
+    tagInput !== '';
+
+  const handleCloseAttempt = () => {
+    if (hasChanges) {
+      setShowDiscardConfirm(true);
+    } else {
+      handleClose();
+    }
+  };
+
   const handleClose = () => {
     setIsClosing(true);
     setTimeout(onClose, 300);
@@ -98,13 +117,16 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
     e.preventDefault();
     setSaving(true);
     try {
+      const manualTags = tagInput.split(',').map(t => t.trim()).filter(t => t !== '');
+      const finalTags = Array.from(new Set([...selectedTags, ...manualTags]));
+      
       await onUpdate({
         name,
         quantity: Number(quantity),
         purchaseDate,
         warrantyExpire,
         description,
-        tags: itemTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== ''),
+        tags: finalTags,
         imageUrl,
         receiptUrl
       });
@@ -117,14 +139,9 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   };
 
   const handleTagToggle = (tag: string) => {
-    const currentTags = itemTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
-    if (currentTags.includes(tag)) {
-      const newTags = currentTags.filter((t: string) => t !== tag);
-      setItemTags(newTags.join(', '));
-    } else {
-      const newTags = [...currentTags, tag];
-      setItemTags(newTags.join(', '));
-    }
+    setSelectedTags(prev => 
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
   };
 
   return (
@@ -137,7 +154,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
               {saving ? '...' : 'Save'}
             </button>
           </div>
-          <button className="close-btn" type="button" onClick={handleClose}>Close</button>
+          <button className="close-btn" type="button" onClick={handleCloseAttempt}>Close</button>
         </div>
         
         <form onSubmit={handleSubmit} className="item-edit-form">
@@ -198,18 +215,18 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label>Tags (Comma separated)</label>
+            <label>Tags (New tags only)</label>
             <div className="tag-input-container">
               <input 
                 type="text" 
-                value={itemTags} 
-                onChange={e => setItemTags(e.target.value)} 
-                placeholder="tools, electronics, kitchen..." 
+                value={tagInput} 
+                onChange={e => setTagInput(e.target.value)} 
+                placeholder="tools, electronics..." 
               />
               <div className="tag-suggestions">
                 {allAvailableTags.map(tag => {
                   const colors = getTagColor(tag);
-                  const isSelected = itemTags.split(',').map((t: string) => t.trim()).includes(tag);
+                  const isSelected = selectedTags.includes(tag);
                   return (
                     <button
                       key={tag}
@@ -266,6 +283,30 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
           </div>
         </form>
       </div>
+
+      {showDiscardConfirm && (
+        <div className="action-sheet-overlay" onClick={() => setShowDiscardConfirm(false)}>
+          <div className="action-sheet" onClick={e => e.stopPropagation()}>
+            <div className="action-sheet-header">
+              <h3>Unsaved Changes</h3>
+              <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px'}}>
+                You have made changes to this item. Would you like to save them?
+              </p>
+            </div>
+            <div className="action-sheet-options">
+              <button className="option-btn primary" onClick={(e) => { e.preventDefault(); handleSubmit(e as any); }}>
+                Save & Close
+              </button>
+              <button className="option-btn destructive" onClick={handleClose}>
+                Discard Changes
+              </button>
+              <button className="option-btn" onClick={() => setShowDiscardConfirm(false)}>
+                Keep Editing
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

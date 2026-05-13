@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, Clock, LogOut } from 'lucide-react';
+import { ArrowLeft, Save, Clock, LogOut, X } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 
@@ -9,6 +9,7 @@ const Settings = () => {
   const [warrantyValue, setWarrantyValue] = useState('2');
   const [warrantyUnit, setWarrantyUnit] = useState('years');
   const [saved, setSaved] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   useEffect(() => {
     const savedValue = localStorage.getItem('defaultWarrantyValue') || '2';
@@ -25,10 +26,8 @@ const Settings = () => {
   };
 
   const handleLogout = async () => {
-    if (window.confirm('Are you sure you want to log out?')) {
-      await signOut(auth);
-      navigate('/');
-    }
+    await signOut(auth);
+    navigate('/');
   };
 
   return (
@@ -108,7 +107,7 @@ const Settings = () => {
 
         <div className="settings-section" style={{ marginTop: '32px' }}>
           <button 
-            onClick={handleLogout}
+            onClick={() => setShowLogoutConfirm(true)}
             style={{ 
               width: '100%',
               padding: '16px',
@@ -133,6 +132,23 @@ const Settings = () => {
           </p>
         </div>
       </div>
+
+      {showLogoutConfirm && (
+        <div className="action-sheet-overlay" onClick={() => setShowLogoutConfirm(false)}>
+          <div className="action-sheet" onClick={e => e.stopPropagation()}>
+            <div className="action-sheet-header">
+              <h3>Log Out?</h3>
+              <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px'}}>
+                Are you sure you want to log out of your account?
+              </p>
+            </div>
+            <div className="action-sheet-options">
+              <button className="option-btn destructive" onClick={handleLogout}>Log Out</button>
+              <button className="option-btn" onClick={() => setShowLogoutConfirm(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

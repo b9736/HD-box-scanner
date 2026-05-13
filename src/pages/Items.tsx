@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Search, Package, Plus, ChevronRight, X, LayoutGrid, List, Sliders, Tag, Edit2, Trash2 } from 'lucide-react';
+import { Search, Package, Plus, ChevronRight, X, LayoutGrid, List, Sliders, Tag, Edit2, Trash2, CheckSquare, Square, Tags, CheckCircle2 } from 'lucide-react';
 import { useItems } from '../hooks/useItems';
 import { useBoxes } from '../hooks/useBoxes';
 import { useItemTags } from '../hooks/useItemTags';
@@ -9,7 +9,7 @@ import { ItemEditModal, ImageSourceModal, FullscreenGallery } from '../component
 import { compressImage, blobToBase64 } from '../utils/imageUtils';
 
 const ItemsPage = () => {
-  const { items, loading: itemsLoading, addItem, updateItem } = useItems();
+  const { items, loading: itemsLoading, addItem, updateItem, removeItem } = useItems();
   const { boxes } = useBoxes();
   const { tags: globalItemTags, addTag } = useItemTags();
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,7 +17,9 @@ const ItemsPage = () => {
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [newItemDescription, setNewItemDescription] = useState('');
-  const [newItemTags, setNewItemTags] = useState('');
+  const [selectedNewItemTags, setSelectedNewItemTags] = useState<string[]>([]);
+  const [newItemTagInput, setNewItemTagInput] = useState('');
+  const [showAddDiscardConfirm, setShowAddDiscardConfirm] = useState(false);
   const [isManagingTags, setIsManagingTags] = useState(false);
   const [newTagCategory, setNewTagCategory] = useState('');
   const [selectedBoxId, setSelectedBoxId] = useState('');
@@ -33,6 +35,12 @@ const ItemsPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadContextRef = useRef<{type: 'item' | 'receipt', itemId: string} | null>(null);
+
+  // Selection states
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [batchModal, setBatchModal] = useState<'delete' | 'assign' | 'remove' | 'clear' | null>(null);
+  const [batchTags, setBatchTags] = useState<string>('');
 
   const toggleView = (type: 'grid' | 'list') => {
     setViewType(type);
@@ -55,12 +63,15 @@ const ItemsPage = () => {
     if (!newItemName || !selectedBoxId) return;
 
     try {
-      const tagsArray = newItemTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
-      await addItem(newItemName, 1, selectedBoxId, newItemDescription, tagsArray);
+      const manualTags = newItemTagInput.split(',').map(t => t.trim()).filter(t => t !== '');
+      const finalTags = Array.from(new Set([...selectedNewItemTags, ...manualTags]));
+      
+      await addItem(newItemName, 1, selectedBoxId, newItemDescription, finalTags);
       setIsAddingItem(false);
       setNewItemName('');
       setNewItemDescription('');
-      setNewItemTags('');
+      setSelectedNewItemTags([]);
+      setNewItemTagInput('');
       setSelectedBoxId('');
     } catch (err) {
       console.error(err);
@@ -104,6 +115,62 @@ const ItemsPage = () => {
     }
   };
 
+  const toggleItemSelection = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAll = () => {
+    setSelectedIds(filteredItems.map(i => i.id));
+  };
+
+  const handleUnselectAll = () => {
+    setSelectedIds([]);
+  };
+
+  const handleBatchDelete = async () => {
+    await Promise.all(selectedIds.map(id => removeItem(id)));
+    setSelectedIds([]);
+    setIsSelectionMode(false);
+    setBatchModal(null);
+  };
+
+  const handleBatchAssignTags = async () => {
+    const tagsArray = batchTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
+    await Promise.all(selectedIds.map(id => {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      const combinedTags = Array.from(new Set([...(item.tags || []), ...tagsArray]));
+      return updateItem(id, { tags: combinedTags });
+    }));
+    setBatchTags('');
+    setBatchModal(null);
+    setSelectedIds([]);
+    setIsSelectionMode(false);
+  };
+
+  const handleBatchRemoveTags = async () => {
+    const tagsArray = batchTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
+    await Promise.all(selectedIds.map(id => {
+      const item = items.find(i => i.id === id);
+      if (!item) return;
+      const filteredTags = (item.tags || []).filter(t => !tagsArray.includes(t));
+      return updateItem(id, { tags: filteredTags });
+    }));
+    setBatchTags('');
+    setBatchModal(null);
+    setSelectedIds([]);
+    setIsSelectionMode(false);
+  };
+
+  const handleBatchClearTags = async () => {
+    await Promise.all(selectedIds.map(id => updateItem(id, { tags: [] })));
+    setSelectedIds([]);
+    setIsSelectionMode(false);
+    setBatchModal(null);
+  };
+
   const handleTagToggle = (tag: string) => {
     const currentTags = newItemTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
     if (currentTags.includes(tag)) {
@@ -130,23 +197,76 @@ const ItemsPage = () => {
   return (
     <div className="page-content">
       <header className="page-header-minimal">
-        <h2 className="header-title">All Items <span className="header-count">({items.length} Items)</span></h2>
-        <div className="view-toggle-container">
-          <button 
-            className={`view-toggle-btn ${viewType === 'grid' ? 'active' : ''}`}
-            onClick={() => toggleView('grid')}
-            title="Grid View"
-          >
-            <LayoutGrid size={20} />
-          </button>
-          <button 
-            className={`view-toggle-btn ${viewType === 'list' ? 'active' : ''}`}
-            onClick={() => toggleView('list')}
-            title="List View"
-          >
-            <List size={20} />
-          </button>
-        </div>
+        {isSelectionMode ? (
+          <>
+            <div className="selection-header-left">
+              <button className="close-selection-btn" onClick={() => { setIsSelectionMode(false); setSelectedIds([]); }}>
+                <X size={20} />
+              </button>
+              <div className="selection-count-container">
+                <span className="selection-count">{selectedIds.length}</span>
+                <span className="selection-label">Items selected</span>
+              </div>
+            </div>
+            <div className="selection-actions">
+              <div className="selection-action-group">
+                <button className="selection-icon-btn" onClick={handleSelectAll} title="Select All Visible"><CheckSquare size={18} /></button>
+                <span className="action-label">All</span>
+              </div>
+              <div className="selection-action-group">
+                <button className="selection-icon-btn" onClick={handleUnselectAll} title="Clear Selection"><Square size={18} /></button>
+                <span className="action-label">None</span>
+              </div>
+              <div className="selection-divider" />
+              <div className="selection-action-group">
+                <button className="selection-icon-btn" onClick={() => setBatchModal('assign')} title="Assign Tags"><Tags size={20} /></button>
+                <span className="action-label">Tags</span>
+              </div>
+              <div className="selection-action-group">
+                <button className="selection-icon-btn" onClick={() => setBatchModal('clear')} title="Clear All Tags">
+                  <div style={{position: 'relative', display: 'flex'}}>
+                    <Tag size={18} />
+                    <X size={12} style={{position: 'absolute', top: -2, right: -4, backgroundColor: 'var(--bg-color)', borderRadius: '50%'}} />
+                  </div>
+                </button>
+                <span className="action-label">Clear</span>
+              </div>
+              <div className="selection-action-group">
+                <button className="selection-icon-btn destructive" onClick={() => setBatchModal('delete')} title="Delete"><Trash2 size={20} /></button>
+                <span className="action-label">Delete</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <h2 className="header-title">All Items <span className="header-count">({items.length} Items)</span></h2>
+            <div className="header-right-actions">
+              <div className="view-toggle-container">
+                <button 
+                  className={`view-toggle-btn ${viewType === 'grid' ? 'active' : ''}`}
+                  onClick={() => toggleView('grid')}
+                  title="Grid View"
+                >
+                  <LayoutGrid size={20} />
+                </button>
+                <button 
+                  className={`view-toggle-btn ${viewType === 'list' ? 'active' : ''}`}
+                  onClick={() => toggleView('list')}
+                  title="List View"
+                >
+                  <List size={20} />
+                </button>
+              </div>
+              <button 
+                className={`view-toggle-btn ${isSelectionMode ? 'active' : ''}`}
+                onClick={() => setIsSelectionMode(true)}
+                title="Selection Mode"
+              >
+                <CheckSquare size={20} />
+              </button>
+            </div>
+          </>
+        )}
       </header>
 
       <div className="search-container">
@@ -224,10 +344,15 @@ const ItemsPage = () => {
                 return (
                   <div 
                     key={item.id} 
-                    className="item-list-row-premium"
-                    onClick={() => setEditingItem(item)}
+                    className={`item-list-row-premium ${selectedIds.includes(item.id) ? 'selected' : ''}`}
+                    onClick={() => isSelectionMode ? toggleItemSelection(item.id) : setEditingItem(item)}
                   >
                     <div className="item-list-left">
+                      {isSelectionMode && (
+                        <div className="selection-indicator">
+                          {selectedIds.includes(item.id) ? <CheckCircle2 size={20} color="var(--primary-color)" /> : <Square size={20} />}
+                        </div>
+                      )}
                       {item.imageUrl ? (
                         <img src={item.imageUrl} alt={item.name} className="item-list-img" />
                       ) : (
@@ -237,21 +362,19 @@ const ItemsPage = () => {
                       )}
                       <div className="item-list-info">
                         <span className="item-list-name">{item.name}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span className="item-list-box">{box?.name || 'Unknown Box'}</span>
-                          {item.tags && item.tags.length > 0 && (
-                            <div className="item-card-tags" style={{ marginTop: 0 }}>
-                              {item.tags.map(tag => {
-                                const colors = getTagColor(tag);
-                                return (
-                                  <span key={tag} className="item-tag-pill" style={{ backgroundColor: colors.bg, color: colors.text }}>
-                                    {tag}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </div>
+                        <span className="item-list-box">{box?.name || 'Unknown Box'}</span>
+                        {item.tags && item.tags.length > 0 && (
+                          <div className="item-card-tags" style={{ marginTop: '4px', justifyContent: 'flex-start' }}>
+                            {item.tags.map(tag => {
+                              const colors = getTagColor(tag);
+                              return (
+                                <span key={tag} className="item-tag-pill" style={{ backgroundColor: colors.bg, color: colors.text }}>
+                                  {tag}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="item-list-right">
@@ -272,9 +395,14 @@ const ItemsPage = () => {
               return (
                 <div 
                   key={item.id} 
-                  className="item-card-premium"
-                  onClick={() => setEditingItem(item)}
+                  className={`item-card-premium ${selectedIds.includes(item.id) ? 'selected' : ''}`}
+                  onClick={() => isSelectionMode ? toggleItemSelection(item.id) : setEditingItem(item)}
                 >
+                  {isSelectionMode && (
+                    <div className="selection-indicator-floating">
+                      {selectedIds.includes(item.id) ? <CheckCircle2 size={20} color="var(--primary-color)" /> : <Square size={20} />}
+                    </div>
+                  )}
                   <div className="item-card-image-area">
                     {item.imageUrl ? (
                       <img src={item.imageUrl} alt={item.name} className="item-card-img" />
@@ -334,7 +462,14 @@ const ItemsPage = () => {
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Add New Item</h3>
-              <button className="close-btn" onClick={() => setIsAddingItem(false)}>
+              <button className="close-btn" onClick={() => {
+                const hasChanges = newItemName || newItemDescription || selectedNewItemTags.length > 0 || newItemTagInput || selectedBoxId;
+                if (hasChanges) {
+                  setShowAddDiscardConfirm(true);
+                } else {
+                  setIsAddingItem(false);
+                }
+              }}>
                 <X size={24} />
               </button>
             </div>
@@ -364,29 +499,33 @@ const ItemsPage = () => {
               </div>
 
               <div className="form-group">
-                <label>Tags (Comma separated)</label>
+                <label>Tags (New tags only)</label>
                 <div className="tag-input-container">
                   <input 
                     type="text" 
-                    placeholder="tools, electronics, kitchen..." 
-                    value={newItemTags}
-                    onChange={(e) => setNewItemTags(e.target.value)}
+                    placeholder="tools, electronics..." 
+                    value={newItemTagInput}
+                    onChange={(e) => setNewItemTagInput(e.target.value)}
                   />
                   <div className="tag-suggestions">
                     {globalItemTags.map(tag => {
                       const colors = getTagColor(tag);
-                      const isSelected = newItemTags.split(',').map((t: string) => t.trim()).includes(tag);
+                      const isSelected = selectedNewItemTags.includes(tag);
                       return (
                         <button
                           key={tag}
                           type="button"
                           className={`suggestion-chip ${isSelected ? 'active' : ''}`}
-                          style={{ 
-                            backgroundColor: isSelected ? colors.activeBg : 'rgba(255,255,255,0.05)',
-                            color: colors.text,
-                            borderColor: isSelected ? colors.text : 'rgba(255,255,255,0.1)'
+                          onClick={() => {
+                            setSelectedNewItemTags(prev => 
+                              prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+                            );
                           }}
-                          onClick={() => handleTagToggle(tag)}
+                          style={{
+                            backgroundColor: isSelected ? colors.bg : 'transparent',
+                            color: isSelected ? colors.text : 'var(--text-secondary)',
+                            borderColor: isSelected ? colors.border : 'var(--border-color)'
+                          }}
                         >
                           {tag}
                         </button>
@@ -415,6 +554,30 @@ const ItemsPage = () => {
                 Add to Box
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showAddDiscardConfirm && (
+        <div className="action-sheet-overlay" onClick={() => setShowAddDiscardConfirm(false)}>
+          <div className="action-sheet" onClick={e => e.stopPropagation()}>
+            <div className="action-sheet-header">
+              <h3>Unsaved Progress</h3>
+              <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px'}}>
+                You've started adding an item. Would you like to save it or discard your progress?
+              </p>
+            </div>
+            <div className="action-sheet-options">
+              <button className="option-btn primary" onClick={(e) => { e.preventDefault(); handleAddItem(e as any); setShowAddDiscardConfirm(false); }}>
+                Save & Close
+              </button>
+              <button className="option-btn destructive" onClick={() => { setIsAddingItem(false); setShowAddDiscardConfirm(false); }}>
+                Discard Progress
+              </button>
+              <button className="option-btn" onClick={() => setShowAddDiscardConfirm(false)}>
+                Keep Editing
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -507,6 +670,109 @@ const ItemsPage = () => {
           }}
           currentThumbnail={editingItem?.imageUrl}
         />
+      )}
+
+      {/* Batch Action Modals */}
+      {batchModal === 'delete' && (
+        <div className="modal-overlay" onClick={() => setBatchModal(null)}>
+          <div className="modal-content compact" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Delete {selectedIds.length} Items?</h3>
+              <button className="close-btn" onClick={() => setBatchModal(null)}><X size={24} /></button>
+            </div>
+            <div className="batch-modal-body">
+              <p>This action cannot be undone. All selected items will be permanently removed.</p>
+              <div className="batch-modal-actions">
+                <button className="batch-btn destructive" onClick={handleBatchDelete}>Confirm Delete</button>
+                <button className="batch-btn secondary" onClick={() => setBatchModal(null)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {batchModal === 'clear' && (
+        <div className="modal-overlay" onClick={() => setBatchModal(null)}>
+          <div className="modal-content compact" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Clear All Tags?</h3>
+              <button className="close-btn" onClick={() => setBatchModal(null)}><X size={24} /></button>
+            </div>
+            <div className="batch-modal-body">
+              <p>Remove every tag from the {selectedIds.length} selected items?</p>
+              <div className="batch-modal-actions">
+                <button className="batch-btn destructive" onClick={handleBatchClearTags}>Remove Tags</button>
+                <button className="batch-btn secondary" onClick={() => setBatchModal(null)}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(batchModal === 'assign' || batchModal === 'remove') && (
+        <div className="modal-overlay" onClick={() => setBatchModal(null)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{batchModal === 'assign' ? 'Assign Tags' : 'Remove Tags'}</h3>
+              <button className="close-btn" onClick={() => setBatchModal(null)}><X size={24} /></button>
+            </div>
+            <div className="batch-modal-body">
+              <p style={{marginBottom: '16px', color: 'var(--text-secondary)'}}>
+                {batchModal === 'assign' 
+                  ? `Add these tags to the ${selectedIds.length} selected items.`
+                  : `Remove these tags from the ${selectedIds.length} selected items.`}
+              </p>
+              <div className="form-group">
+                <label>Tags (Comma separated)</label>
+                <div className="tag-input-container">
+                  <input 
+                    type="text" 
+                    value={batchTags} 
+                    onChange={e => setBatchTags(e.target.value)} 
+                    placeholder="tools, electronics..." 
+                    autoFocus
+                  />
+                  <div className="tag-suggestions">
+                    {globalItemTags.map(tag => {
+                      const colors = getTagColor(tag);
+                      const isSelected = batchTags.split(',').map((t: string) => t.trim()).includes(tag);
+                      return (
+                        <button
+                          key={tag}
+                          type="button"
+                          className={`suggestion-chip ${isSelected ? 'active' : ''}`}
+                          style={{ 
+                            backgroundColor: isSelected ? colors.activeBg : 'rgba(255,255,255,0.05)',
+                            color: colors.text,
+                            borderColor: isSelected ? colors.text : 'rgba(255,255,255,0.1)'
+                          }}
+                          onClick={() => {
+                            const current = batchTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
+                            if (current.includes(tag)) {
+                              setBatchTags(current.filter(t => t !== tag).join(', '));
+                            } else {
+                              setBatchTags([...current, tag].join(', '));
+                            }
+                          }}
+                        >
+                          {tag}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              <div className="batch-modal-actions" style={{marginTop: '24px'}}>
+                <button 
+                  className={`batch-btn ${batchModal === 'assign' ? 'primary' : 'destructive'}`} 
+                  onClick={batchModal === 'assign' ? handleBatchAssignTags : handleBatchRemoveTags}
+                >
+                  {batchModal === 'assign' ? 'Apply Tags' : 'Remove Tags'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       <input 
