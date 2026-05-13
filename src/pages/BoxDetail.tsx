@@ -40,7 +40,6 @@ const BoxDetail = () => {
   
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const cameraInputRef = React.useRef<HTMLInputElement>(null);
-  const uploadContextRef = React.useRef<{type: 'box' | 'item' | 'receipt', itemId?: string} | null>(null);
   const [showExpired, setShowExpired] = useState(localStorage.getItem('showExpiredStatus') !== 'false');
 
   const handleShowExpiredChange = (checked: boolean) => {
@@ -158,12 +157,15 @@ const BoxDetail = () => {
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const context = uploadContextRef.current;
-    if (files.length === 0 || !context) return;
+    
+    // Retrieve context from sessionStorage to handle reloads
+    const contextJson = sessionStorage.getItem('uploadContext');
+    if (files.length === 0 || !contextJson) return;
 
     setUploading(true);
+    const context = JSON.parse(contextJson);
     const { type, itemId } = context;
-    uploadContextRef.current = null; 
+    sessionStorage.removeItem('uploadContext'); 
 
     try {
       const processedImages = await Promise.all(files.map(async file => {
@@ -271,15 +273,18 @@ const BoxDetail = () => {
                   );
                 })}
               </div>
-              <div className="add-tag-inline">
+              <div className="tag-input-wrapper" style={{ marginBottom: '12px' }}>
                 <input 
                   type="text" 
                   placeholder="Add a tag..." 
                   value={newTag} 
                   onChange={(e) => setNewTag(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                  style={{ border: 'none', backgroundColor: 'transparent' }}
                 />
-                <button type="button" onClick={handleAddTag}>Add</button>
+                <button type="button" className="tag-add-btn" onClick={handleAddTag} style={{ padding: '8px' }}>
+                  <Plus size={20} />
+                </button>
               </div>
               
               {/* Global Tag Suggestions */}
@@ -511,7 +516,7 @@ const BoxDetail = () => {
       {imageSourceModal && (
         <ImageSourceModal 
           onSelect={(source) => {
-            uploadContextRef.current = imageSourceModal;
+            sessionStorage.setItem('uploadContext', JSON.stringify(imageSourceModal));
             if (source === 'camera') cameraInputRef.current?.click();
             else fileInputRef.current?.click();
             setImageSourceModal(null);

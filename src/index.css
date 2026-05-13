@@ -2876,33 +2876,46 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 .tag-input-wrapper {
   display: flex;
-  gap: 12px;
+  align-items: center;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 4px;
+  transition: all 0.2s;
+  overflow: hidden;
+}
+
+.tag-input-wrapper:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(62, 130, 247, 0.1);
 }
 
 .tag-input-wrapper input {
   flex: 1;
-  background-color: var(--surface-color);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 12px 16px;
-  color: white;
+  background: none !important;
+  border: none !important;
+  padding: 10px 14px !important;
+  color: white !important;
   font-weight: 600;
-  text-transform: uppercase;
+  outline: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
   font-size: 14px;
 }
 
 .tag-add-btn {
-  width: 48px;
-  height: 48px;
   background-color: var(--primary-color);
   border: none;
-  border-radius: 14px;
   color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .tag-add-btn:hover {

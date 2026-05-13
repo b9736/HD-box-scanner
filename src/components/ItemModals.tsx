@@ -144,6 +144,15 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
     );
   };
 
+  const handleCommitTag = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!tagInput.trim()) return;
+    
+    const newTags = tagInput.split(',').map(t => t.trim()).filter(t => t !== '');
+    setSelectedTags(prev => Array.from(new Set([...prev, ...newTags])));
+    setTagInput('');
+  };
+
   return (
     <div className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
       <div className={`modal-content ${isClosing ? 'closing' : ''}`} onClick={e => e.stopPropagation()}>
@@ -216,13 +225,19 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
 
           <div className="form-group">
             <label>Tags (New tags only)</label>
-            <div className="tag-input-container">
+            <div className="tag-input-wrapper" style={{ marginBottom: '12px' }}>
               <input 
                 type="text" 
                 value={tagInput} 
                 onChange={e => setTagInput(e.target.value)} 
                 placeholder="tools, electronics..." 
+                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleCommitTag())}
+                style={{ border: 'none', backgroundColor: 'transparent' }}
               />
+              <button type="button" className="tag-add-btn" onClick={handleCommitTag} style={{ padding: '8px' }}>
+                <Plus size={20} />
+              </button>
+            </div>
               <div className="tag-suggestions">
                 {allAvailableTags.map(tag => {
                   const colors = getTagColor(tag);
@@ -245,7 +260,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
                 })}
               </div>
             </div>
-          </div>
+
 
           <div className="form-group">
             <label>Quantity</label>

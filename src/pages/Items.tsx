@@ -41,6 +41,7 @@ const ItemsPage = () => {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [batchModal, setBatchModal] = useState<'delete' | 'assign' | 'remove' | 'clear' | null>(null);
   const [batchTags, setBatchTags] = useState<string>('');
+  const [selectedBatchTags, setSelectedBatchTags] = useState<string[]>([]);
 
   const toggleView = (type: 'grid' | 'list') => {
     setViewType(type);
@@ -58,6 +59,24 @@ const ItemsPage = () => {
     
     return matchesSearch && matchesTags;
   });
+
+  const handleCommitNewItemTag = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newItemTagInput.trim()) return;
+    
+    const newTags = newItemTagInput.split(',').map(t => t.trim()).filter(t => t !== '');
+    setSelectedNewItemTags(prev => Array.from(new Set([...prev, ...newTags])));
+    setNewItemTagInput('');
+  };
+
+  const handleCommitBatchTag = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!batchTags.trim()) return;
+    
+    const newTags = batchTags.split(',').map(t => t.trim()).filter(t => t !== '');
+    setSelectedBatchTags(prev => Array.from(new Set([...prev, ...newTags])));
+    setBatchTags('');
+  };
 
   const handleAddItem = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -138,7 +157,9 @@ const ItemsPage = () => {
   };
 
   const handleBatchAssignTags = async () => {
-    const tagsArray = batchTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
+    const manualTags = batchTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
+    const tagsArray = Array.from(new Set([...selectedBatchTags, ...manualTags]));
+    
     await Promise.all(selectedIds.map(id => {
       const item = items.find(i => i.id === id);
       if (!item) return;
@@ -146,13 +167,16 @@ const ItemsPage = () => {
       return updateItem(id, { tags: combinedTags });
     }));
     setBatchTags('');
+    setSelectedBatchTags([]);
     setBatchModal(null);
     setSelectedIds([]);
     setIsSelectionMode(false);
   };
 
   const handleBatchRemoveTags = async () => {
-    const tagsArray = batchTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
+    const manualTags = batchTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
+    const tagsArray = Array.from(new Set([...selectedBatchTags, ...manualTags]));
+    
     await Promise.all(selectedIds.map(id => {
       const item = items.find(i => i.id === id);
       if (!item) return;
@@ -160,6 +184,7 @@ const ItemsPage = () => {
       return updateItem(id, { tags: filteredTags });
     }));
     setBatchTags('');
+    setSelectedBatchTags([]);
     setBatchModal(null);
     setSelectedIds([]);
     setIsSelectionMode(false);
@@ -496,13 +521,19 @@ const ItemsPage = () => {
 
               <div className="form-group">
                 <label>Tags (New tags only)</label>
-                <div className="tag-input-container">
+                <div className="tag-input-wrapper" style={{ marginBottom: '12px' }}>
                   <input 
                     type="text" 
                     placeholder="tools, electronics..." 
                     value={newItemTagInput}
                     onChange={(e) => setNewItemTagInput(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleCommitNewItemTag())}
+                    style={{ border: 'none', backgroundColor: 'transparent' }}
                   />
+                  <button type="button" className="tag-add-btn" onClick={handleCommitNewItemTag} style={{ padding: '8px' }}>
+                    <Plus size={20} />
+                  </button>
+                </div>
                   <div className="tag-suggestions">
                     {globalItemTags.map(tag => {
                       const colors = getTagColor(tag);
@@ -529,7 +560,6 @@ const ItemsPage = () => {
                     })}
                   </div>
                 </div>
-              </div>
 
               <div className="form-group">
                 <label>Select Box</label>
@@ -719,36 +749,39 @@ const ItemsPage = () => {
                   : `Remove these tags from the ${selectedIds.length} selected items.`}
               </p>
               <div className="form-group">
-                <label>Tags (Comma separated)</label>
-                <div className="tag-input-container">
+                <label>Tags (New tags only)</label>
+                <div className="tag-input-wrapper" style={{ marginBottom: '12px' }}>
                   <input 
                     type="text" 
                     value={batchTags} 
                     onChange={e => setBatchTags(e.target.value)} 
                     placeholder="tools, electronics..." 
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleCommitBatchTag())}
+                    style={{ border: 'none', backgroundColor: 'transparent' }}
                     autoFocus
                   />
+                  <button type="button" className="tag-add-btn" onClick={handleCommitBatchTag} style={{ padding: '8px' }}>
+                    <Plus size={20} />
+                  </button>
+                </div>
                   <div className="tag-suggestions">
                     {globalItemTags.map(tag => {
                       const colors = getTagColor(tag);
-                      const isSelected = batchTags.split(',').map((t: string) => t.trim()).includes(tag);
+                      const isSelected = selectedBatchTags.includes(tag);
                       return (
                         <button
                           key={tag}
                           type="button"
                           className={`suggestion-chip ${isSelected ? 'active' : ''}`}
                           style={{ 
-                            backgroundColor: isSelected ? colors.activeBg : 'rgba(255,255,255,0.05)',
-                            color: colors.text,
-                            borderColor: isSelected ? colors.text : 'rgba(255,255,255,0.1)'
+                            backgroundColor: isSelected ? colors.bg : 'rgba(255,255,255,0.05)',
+                            color: isSelected ? colors.text : 'var(--text-secondary)',
+                            borderColor: isSelected ? colors.border : 'var(--border-color)'
                           }}
                           onClick={() => {
-                            const current = batchTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
-                            if (current.includes(tag)) {
-                              setBatchTags(current.filter(t => t !== tag).join(', '));
-                            } else {
-                              setBatchTags([...current, tag].join(', '));
-                            }
+                            setSelectedBatchTags(prev => 
+                              prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+                            );
                           }}
                         >
                           {tag}
@@ -768,7 +801,7 @@ const ItemsPage = () => {
               </div>
             </div>
           </div>
-        </div>
+
       )}
 
       <input 
