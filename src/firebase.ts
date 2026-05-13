@@ -1,8 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { 
   initializeFirestore, 
-  memoryLocalCache, 
-  getFirestore 
+  memoryLocalCache
 } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getAnalytics } from "firebase/analytics";

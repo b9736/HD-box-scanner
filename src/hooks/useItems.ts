@@ -17,6 +17,7 @@ export interface Item {
   description?: string;
   tags?: string[];
   uid: string;
+  createdAt?: any;
 }
 
 export const useItems = (boxId?: string) => {
