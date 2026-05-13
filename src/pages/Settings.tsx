@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Save, Clock, LogOut } from 'lucide-react';
 import { signOut } from 'firebase/auth';
-import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
-import { auth, db } from '../firebase';
+import { auth } from '../firebase';
 
 const Settings = () => {
   const navigate = useNavigate();
