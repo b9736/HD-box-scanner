@@ -118,7 +118,7 @@ body {
 .page-content {
   flex: 1;
   padding: var(--spacing-md);
-  padding-bottom: 100px; /* Space for nav */
+  padding-bottom: 140px; /* Generous space for nav and FAB */
   overflow-y: auto;
 }
 
@@ -2401,6 +2401,7 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding-bottom: 140px;
 }
 
 .item-list-row-premium {

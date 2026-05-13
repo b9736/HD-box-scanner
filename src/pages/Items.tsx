@@ -13,7 +13,7 @@ const ItemsPage = () => {
   const { boxes } = useBoxes();
   const { tags: globalItemTags, addTag } = useItemTags();
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isAddingItem, setIsAddingItem] = useState(false);
   const [newItemName, setNewItemName] = useState('');
   const [newItemDescription, setNewItemDescription] = useState('');
@@ -53,9 +53,10 @@ const ItemsPage = () => {
                          item.description?.toLowerCase().includes(q) ||
                          item.tags?.some((t: string) => t.toLowerCase().includes(q));
     
-    const matchesTag = !selectedTag || item.tags?.includes(selectedTag);
+    const matchesTags = selectedTags.length === 0 || 
+                       selectedTags.every(tag => item.tags?.includes(tag));
     
-    return matchesSearch && matchesTag;
+    return matchesSearch && matchesTags;
   });
 
   const handleAddItem = async (e: React.FormEvent) => {
@@ -287,25 +288,29 @@ const ItemsPage = () => {
             <Sliders size={18} />
           </button>
           <button 
-            className={`filter-pill ${!selectedTag ? 'active' : ''}`}
-            onClick={() => setSelectedTag(null)}
+            className={`filter-pill ${selectedTags.length === 0 ? 'active' : ''}`}
+            onClick={() => setSelectedTags([])}
           >
             ALL
           </button>
           {globalItemTags.map(tag => {
             const colors = getTagColor(tag);
-            const isActive = selectedTag === tag;
+            const isActive = selectedTags.includes(tag);
             return (
               <button 
                 key={tag} 
                 className={`filter-pill ${isActive ? 'active' : ''}`}
                 style={{ 
-                  backgroundColor: isActive ? colors.bg : `${colors.text}15`, // 15 is ~8% opacity
+                  backgroundColor: isActive ? colors.bg : `${colors.text}15`, 
                   color: isActive ? colors.text : colors.text,
                   borderColor: isActive ? colors.bg : 'transparent',
                   opacity: isActive ? 1 : 0.8
                 }}
-                onClick={() => setSelectedTag(isActive ? null : tag)}
+                onClick={() => {
+                  setSelectedTags(prev => 
+                    prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+                  );
+                }}
               >
                 {tag.toUpperCase()}
               </button>

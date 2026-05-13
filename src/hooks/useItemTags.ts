@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import { collection, query, onSnapshot, addDoc, serverTimestamp, where } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 export const useItemTags = () => {
+  const { user } = useAuth();
   const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = auth.currentUser;
     if (!user) {
       setTags([]);
       setLoading(false);
@@ -55,10 +56,9 @@ export const useItemTags = () => {
       unsubItems();
       unsubGlobal();
     };
-  }, [auth.currentUser]);
+  }, [user]);
 
   const addTag = async (name: string) => {
-    const user = auth.currentUser;
     if (!user) return;
 
     try {

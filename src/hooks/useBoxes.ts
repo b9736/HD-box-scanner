@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, query, orderBy, onSnapshot, addDoc, serverTimestamp, setDoc, deleteDoc, doc, where } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 export interface Box {
   id: string;
@@ -14,17 +15,18 @@ export interface Box {
 }
 
 export const useBoxes = () => {
+  const { user } = useAuth();
   const [boxes, setBoxes] = useState<Box[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = auth.currentUser;
     if (!user) {
       setBoxes([]);
       setLoading(false);
       return;
     }
 
+    setLoading(true);
     const q = query(
       collection(db, "boxes"), 
       where("uid", "==", user.uid),
@@ -44,10 +46,9 @@ export const useBoxes = () => {
     });
 
     return () => unsubscribe();
-  }, [auth.currentUser]);
+  }, [user]);
 
   const createBox = async (name: string, room: string, tags: string[]) => {
-    const user = auth.currentUser;
     if (!user) throw new Error("User not authenticated");
 
     try {

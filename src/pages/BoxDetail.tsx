@@ -5,6 +5,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { getTagColor } from '../utils/tagColors';
 import { getWarrantyStatus } from '../utils/warranty';
 import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 import { useItems } from '../hooks/useItems';
 import { useBoxes } from '../hooks/useBoxes';
 import { useGlobalTags } from '../hooks/useGlobalTags';
@@ -47,12 +48,11 @@ const BoxDetail = () => {
     localStorage.setItem('showExpiredStatus', String(checked));
   };
 
+  const { user } = useAuth();
+
   useEffect(() => {
     const fetchBox = async () => {
-      if (!id) return;
-      
-      const user = auth.currentUser;
-      if (!user) return; // Wait for auth to initialize
+      if (!id || !user) return; // Wait for auth to initialize
 
       try {
         const docRef = doc(db, "boxes", id);
@@ -79,7 +79,7 @@ const BoxDetail = () => {
       }
     };
     fetchBox();
-  }, [id, navigate, auth.currentUser]);
+  }, [id, navigate, user]);
 
   const handleUpdateBox = async (e: React.FormEvent) => {
     if (e) e.preventDefault();

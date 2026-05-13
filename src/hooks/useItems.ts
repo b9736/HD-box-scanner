@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { collection, query, where, onSnapshot, addDoc, serverTimestamp, deleteDoc, doc, setDoc } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 export interface Item {
   id: string;
@@ -19,17 +20,18 @@ export interface Item {
 }
 
 export const useItems = (boxId?: string) => {
+  const { user } = useAuth();
   const [items, setItems] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = auth.currentUser;
     if (!user) {
       setItems([]);
       setLoading(false);
       return;
     }
 
+    setLoading(true);
     let q;
     if (boxId) {
       q = query(
@@ -57,10 +59,9 @@ export const useItems = (boxId?: string) => {
     });
 
     return () => unsubscribe();
-  }, [boxId, auth.currentUser]);
+  }, [boxId, user]);
 
   const addItem = async (name: string, quantity: number = 1, overrideBoxId?: string, description?: string, tags: string[] = []) => {
-    const user = auth.currentUser;
     if (!user) throw new Error("User not authenticated");
 
     try {

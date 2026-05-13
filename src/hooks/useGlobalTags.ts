@@ -1,23 +1,25 @@
 import { useState, useEffect } from 'react';
 import { collection, query, onSnapshot, where } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import { db } from '../firebase';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * Hook to fetch all unique tags used across the CURRENT user's boxes.
  * Useful for providing tag suggestions and quick-selection.
  */
 export const useGlobalTags = () => {
+  const { user } = useAuth();
   const [tags, setTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const user = auth.currentUser;
     if (!user) {
       setTags([]);
       setLoading(false);
       return;
     }
 
+    setLoading(true);
     const q = query(collection(db, "boxes"), where("uid", "==", user.uid));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const allTags = new Set<string>();
@@ -35,7 +37,7 @@ export const useGlobalTags = () => {
     });
 
     return () => unsubscribe();
-  }, [auth.currentUser]);
+  }, [user]);
 
   return { tags, loading };
 };
