@@ -55,7 +55,6 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   onClose, 
   onUpdate, 
   onImageRequest,
-  onPreviewImage,
   onAddTag,
   onDrop
 }) => {
@@ -151,6 +150,12 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
       const manualTags = tagInput.split(',').map(t => t.trim()).filter(t => t !== '');
       const finalTags = Array.from(new Set([...selectedTags, ...manualTags]));
       
+      // Reorder images so the selected thumbnail is first
+      let newImages = [...(item.images || [])];
+      if (imageUrl && newImages.includes(imageUrl)) {
+        newImages = [imageUrl, ...newImages.filter(img => img !== imageUrl)];
+      }
+
       await onUpdate({
         name,
         quantity: Number(quantity),
@@ -159,7 +164,8 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
         description,
         tags: finalTags,
         imageUrl,
-        receiptUrl
+        receiptUrl,
+        images: newImages
       });
       handleClose();
     } catch (err) {
@@ -213,9 +219,26 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
               <label>Item Photos</label>
               <div className="modal-gallery-scroll">
                 {(item.images || []).map((img: string, idx: number) => (
-                  <div key={idx} className="modal-gallery-item">
-                    <img src={img} alt="" onClick={() => onPreviewImage(item.images || [], idx)} />
-                    <button type="button" className="delete-photo-btn" onClick={() => {
+                  <div 
+                    key={idx} 
+                    className={`modal-gallery-item ${imageUrl === img ? 'is-thumbnail' : ''}`}
+                    onClick={() => setImageUrl(img)}
+                    style={{ 
+                      cursor: 'pointer', 
+                      position: 'relative',
+                      border: imageUrl === img ? '2px solid var(--primary-color)' : '2px solid transparent',
+                      borderRadius: '8px',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <img src={img} alt="" />
+                    {imageUrl === img && (
+                      <div style={{ position: 'absolute', top: '2px', right: '2px', backgroundColor: 'var(--primary-color)', borderRadius: '50%', padding: '2px' }}>
+                        <Star size={10} fill="white" color="white" />
+                      </div>
+                    )}
+                    <button type="button" className="delete-photo-btn" onClick={(e) => {
+                      e.stopPropagation();
                       setConfirmModal({
                         isOpen: true,
                         title: 'Delete Photo',
@@ -247,9 +270,21 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
               <label>Receipts & Docs</label>
               <div className="modal-gallery-scroll">
                 {(item.receipts || []).map((img: string, idx: number) => (
-                  <div key={idx} className="modal-gallery-item">
-                    <img src={img} alt="" onClick={() => onPreviewImage(item.receipts || [], idx)} />
-                    <button type="button" className="delete-photo-btn" onClick={() => {
+                  <div 
+                    key={idx} 
+                    className={`modal-gallery-item ${receiptUrl === img ? 'is-receipt-main' : ''}`}
+                    onClick={() => setReceiptUrl(img)}
+                    style={{ 
+                      cursor: 'pointer', 
+                      position: 'relative',
+                      border: receiptUrl === img ? '2px solid var(--primary-color)' : '2px solid transparent',
+                      borderRadius: '8px',
+                      overflow: 'hidden'
+                    }}
+                  >
+                    <img src={img} alt="" />
+                    <button type="button" className="delete-photo-btn" onClick={(e) => {
+                      e.stopPropagation();
                       setConfirmModal({
                         isOpen: true,
                         title: 'Delete Receipt',
@@ -712,10 +747,8 @@ export const ItemAddModal: React.FC<ItemAddModalProps> = ({
 export const FullscreenGallery: React.FC<{
   images: string[], 
   initialIndex: number, 
-  onClose: () => void,
-  onSetThumbnail?: (url: string) => void,
-  currentThumbnail?: string
-}> = ({ images, initialIndex, onClose, onSetThumbnail, currentThumbnail }) => {
+  onClose: () => void
+}> = ({ images, initialIndex, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -757,11 +790,6 @@ export const FullscreenGallery: React.FC<{
         {images.map((img, idx) => (
           <div key={idx} className="fullscreen-slide">
             <img src={img} alt="" />
-            {onSetThumbnail && (
-              <button className={`fullscreen-star ${currentThumbnail === img ? 'active' : ''}`} onClick={(e) => { e.stopPropagation(); onSetThumbnail(img); }}>
-                <Star size={28} fill={currentThumbnail === img ? "currentColor" : "none"} />
-              </button>
-            )}
           </div>
         ))}
       </div>

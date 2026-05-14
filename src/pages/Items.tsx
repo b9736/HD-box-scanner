@@ -609,10 +609,6 @@ const ItemsPage = () => {
           images={fullscreenImage.images} 
           initialIndex={fullscreenImage.index} 
           onClose={() => setFullscreenImage(null)}
-          onSetThumbnail={async (url) => {
-            await handleUpdateItem({ imageUrl: url });
-          }}
-          currentThumbnail={editingItem?.imageUrl}
         />
       )}
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Printer, Edit3, X, Camera } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Printer, Edit3, X, Camera, Package } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { getTagColor } from '../utils/tagColors';
 import { getWarrantyStatus } from '../utils/warranty';
@@ -23,6 +23,7 @@ const BoxDetail = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editRoom, setEditRoom] = useState('');
+  const [editImageUrl, setEditImageUrl] = useState('');
   const [editHasQRCode, setEditHasQRCode] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [newItemName, setNewItemName] = useState('');
@@ -74,6 +75,7 @@ const BoxDetail = () => {
           setBox({ id: docSnap.id, ...data });
           setEditName(data.name);
           setEditRoom(data.room);
+          setEditImageUrl(data.imageUrl || '');
           setEditHasQRCode(!!data.hasQRCode);
         } else {
           navigate('/');
@@ -89,8 +91,28 @@ const BoxDetail = () => {
   const handleUpdateBox = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!id || !editName) return;
-    await updateBox(id, { name: editName, room: editRoom, hasQRCode: editHasQRCode });
-    setBox({ ...box, name: editName, room: editRoom, hasQRCode: editHasQRCode });
+
+    // Reorder images so the selected thumbnail is first
+    let newImages = [...(box.images || [])];
+    if (editImageUrl && newImages.includes(editImageUrl)) {
+      newImages = [editImageUrl, ...newImages.filter(img => img !== editImageUrl)];
+    }
+
+    await updateBox(id, { 
+      name: editName, 
+      room: editRoom, 
+      hasQRCode: editHasQRCode, 
+      imageUrl: editImageUrl,
+      images: newImages
+    });
+    setBox({ 
+      ...box, 
+      name: editName, 
+      room: editRoom, 
+      hasQRCode: editHasQRCode, 
+      imageUrl: editImageUrl,
+      images: newImages
+    });
     setIsEditing(false);
   };
 
@@ -98,6 +120,7 @@ const BoxDetail = () => {
     // Check if anything changed
     const hasChanged = editName !== box.name || 
                        editRoom !== box.room ||
+                       editImageUrl !== (box.imageUrl || '') ||
                        editHasQRCode !== !!box.hasQRCode;
     
     if (hasChanged) {
@@ -111,6 +134,7 @@ const BoxDetail = () => {
     // Reset to original values
     setEditName(box.name);
     setEditRoom(box.room);
+    setEditImageUrl(box.imageUrl || '');
     setEditHasQRCode(!!box.hasQRCode);
     setSelectedTagFilters([]);
     setIsEditing(false);
@@ -246,17 +270,19 @@ const BoxDetail = () => {
           </div>
         </div>
         <form onSubmit={handleUpdateBox} className="edit-box-form compact">
+            <div className="form-group" style={{ marginBottom: '16px' }}>
+              <label>Box Name</label>
+              <input 
+                type="text" 
+                value={editName} 
+                onChange={(e) => setEditName(e.target.value)} 
+                required 
+                autoComplete="off"
+                style={{ width: '100%' }}
+              />
+            </div>
+            
             <div className="form-row-compact">
-              <div className="form-group flex-2">
-                <label>Box Name</label>
-                <input 
-                  type="text" 
-                  value={editName} 
-                  onChange={(e) => setEditName(e.target.value)} 
-                  required 
-                  autoComplete="off"
-                />
-              </div>
               <div className="form-group flex-1">
                 <label>Location</label>
                 <input 
@@ -279,6 +305,50 @@ const BoxDetail = () => {
                 </label>
               </div>
             </div>
+
+            {/* Box Image Selection */}
+            {box.images && box.images.length > 0 && (
+              <div className="box-image-selector" style={{ marginTop: '8px' }}>
+                <label style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', display: 'block' }}>Select Main Image</label>
+                <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px', scrollbarWidth: 'none' }}>
+                  {box.images.map((img: string) => (
+                    <div 
+                      key={img}
+                      onClick={() => setEditImageUrl(img)}
+                      style={{
+                        width: '60px',
+                        height: '60px',
+                        borderRadius: '12px',
+                        overflow: 'hidden',
+                        border: `2px solid ${editImageUrl === img ? 'var(--primary-color)' : 'transparent'}`,
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  ))}
+                  <div 
+                    onClick={() => setEditImageUrl('')}
+                    style={{
+                      width: '60px',
+                      height: '60px',
+                      borderRadius: '12px',
+                      backgroundColor: 'rgba(255,255,255,0.05)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: `2px solid ${editImageUrl === '' ? 'var(--primary-color)' : 'transparent'}`,
+                      cursor: 'pointer',
+                      flexShrink: 0
+                    }}
+                  >
+                    <Package size={20} color="var(--text-secondary)" />
+                  </div>
+                </div>
+              </div>
+            )}
           </form>
         </div>
       ) : (
@@ -578,12 +648,6 @@ const BoxDetail = () => {
           images={fullscreenImage.images} 
           initialIndex={fullscreenImage.index} 
           onClose={() => setFullscreenImage(null)} 
-          currentThumbnail={box.imageUrl}
-          onSetThumbnail={(url) => {
-            const newUrl = box.imageUrl === url ? '' : url;
-            updateBox(id!, { imageUrl: newUrl });
-            setBox({ ...box, imageUrl: newUrl });
-          }}
         />
       )}
 
