@@ -132,12 +132,20 @@ const Scanner: React.FC<ScannerProps> = ({ onScanSuccess, onScanFailure }) => {
     };
   }, []);
 
-  const switchCamera = () => {
+  const switchCamera = async () => {
     if (cameras.length < 2) return;
+    
     const nextIndex = (currentCameraIndex + 1) % cameras.length;
     setCurrentCameraIndex(nextIndex);
     localStorage.setItem('preferred_camera_index', nextIndex.toString());
-    startScanner(cameras[nextIndex].id);
+    
+    // Stop the current scanner first
+    await stopScanner();
+    
+    // Give the hardware a tiny moment to release the camera resource
+    setTimeout(() => {
+      startScanner(cameras[nextIndex].id);
+    }, 100);
   };
 
   return (
