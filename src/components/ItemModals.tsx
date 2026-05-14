@@ -784,7 +784,7 @@ export const FullscreenGallery: React.FC<{
 };
 
 export const TagManagementModal: React.FC<{onClose: () => void}> = ({ onClose }) => {
-  const { tags: globalItemTags, addTag, removeTag, renameTag } = useItemTags();
+  const { tags: globalItemTags, tagCounts, addTag, removeTag, renameTag } = useItemTags();
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [editingTagValue, setEditingTagValue] = useState('');
   const [newTagCategory, setNewTagCategory] = useState('');
@@ -855,7 +855,9 @@ export const TagManagementModal: React.FC<{onClose: () => void}> = ({ onClose })
                     }}
                   />
                 ) : (
-                  <span className="tag-name" style={{ color: colors.text }}>{tag}</span>
+                  <span className="tag-name" style={{ color: colors.text }}>
+                    {tag} <span style={{ opacity: 0.6, fontSize: '11px', marginLeft: '4px' }}>({tagCounts[tag] || 0})</span>
+                  </span>
                 )}
                 <div className="tag-actions">
                   <button 

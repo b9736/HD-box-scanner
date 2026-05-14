@@ -397,10 +397,23 @@ const BoxDetail = () => {
                       whiteSpace: 'nowrap',
                       transition: 'all 0.2s ease',
                       boxShadow: isActive ? `0 0 10px ${colors.bg}` : 'none',
-                      transform: isActive ? 'scale(1.05)' : 'scale(1)'
+                      transform: isActive ? 'scale(1.05)' : 'scale(1)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
                     }}
                   >
                     {tag}
+                    <span style={{ 
+                      fontSize: '10px', 
+                      opacity: 0.8, 
+                      fontWeight: 'bold',
+                      backgroundColor: 'rgba(0,0,0,0.2)',
+                      padding: '1px 4px',
+                      borderRadius: '4px'
+                    }}>
+                      {items.filter(i => (i.tags || []).includes(tag)).length}
+                    </span>
                   </span>
                 );
               })}

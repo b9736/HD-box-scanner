@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 export const useItemTags = () => {
   const { user } = useAuth();
   const [tags, setTags] = useState<string[]>([]);
+  const [tagCounts, setTagCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,27 +16,28 @@ export const useItemTags = () => {
       return;
     }
 
-    let itemTags: string[] = [];
     let globalTags: string[] = [];
 
-    const updateCombinedTags = () => {
-      const combined = new Set([...itemTags, ...globalTags]);
+    const updateCombinedTags = (counts: Record<string, number>) => {
+      const combined = new Set([...Object.keys(counts), ...globalTags]);
       setTags(Array.from(combined).sort());
+      setTagCounts(counts);
       setLoading(false);
     };
 
     const unsubItems = onSnapshot(
       query(collection(db, "items"), where("uid", "==", user.uid)), 
       (snapshot) => {
-        const tagsSet = new Set<string>();
+        const counts: Record<string, number> = {};
         snapshot.docs.forEach(doc => {
           const data = doc.data();
           if (data.tags && Array.isArray(data.tags)) {
-            data.tags.forEach(tag => tagsSet.add(tag));
+            data.tags.forEach(tag => {
+              counts[tag] = (counts[tag] || 0) + 1;
+            });
           }
         });
-        itemTags = Array.from(tagsSet);
-        updateCombinedTags();
+        updateCombinedTags(counts);
       }
     );
 
@@ -48,7 +50,9 @@ export const useItemTags = () => {
           if (data.name) tagsSet.add(data.name);
         });
         globalTags = Array.from(tagsSet);
-        updateCombinedTags();
+        // We don't need to trigger a full update here if counts haven't changed, 
+        // but adding a new global tag should show up in the list with 0 count.
+        setTags(prev => Array.from(new Set([...prev, ...globalTags])).sort());
       }
     );
 
@@ -129,5 +133,5 @@ export const useItemTags = () => {
     }
   };
 
-  return { tags, loading, addTag, removeTag, renameTag };
+  return { tags, tagCounts, loading, addTag, removeTag, renameTag };
 };
