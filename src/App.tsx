@@ -203,6 +203,31 @@ const Home = () => {
                         .map(i => `${i.name} ${i.quantity || 1}x`)
                         .join(', ') || 'Empty'}
                     </div>
+                    {/* Item-level Tags in this Box */}
+                    {(() => {
+                      const boxItemTags = Array.from(new Set(allItems.filter(i => i.boxId === box.id).flatMap(i => i.tags || [])));
+                      if (boxItemTags.length === 0) return null;
+                      return (
+                        <div className="box-row-item-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                          {boxItemTags.map(tag => {
+                            const colors = getTagColor(tag);
+                            return (
+                              <span key={tag} style={{ 
+                                fontSize: '10px', 
+                                padding: '2px 8px', 
+                                borderRadius: '4px', 
+                                backgroundColor: colors.bg, 
+                                color: colors.text,
+                                border: `1px solid ${colors.border}`,
+                                opacity: 0.9
+                              }}>
+                                {tag}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
                 <div className="box-row-tags">
