@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Package, Plus, ChevronRight, X, LayoutGrid, List, Sliders, Tag, Trash2, CheckSquare, Square, Tags, CheckCircle2 } from 'lucide-react';
+import { Search, Package, Plus, ChevronRight, X, LayoutGrid, List, Sliders, Tag, Trash2, CheckSquare, Square, Tags, CheckCircle2, Settings, Minus } from 'lucide-react';
 import { useItems } from '../hooks/useItems';
 import { useBoxes } from '../hooks/useBoxes';
 import { useItemTags } from '../hooks/useItemTags';
@@ -21,6 +21,20 @@ const ItemsPage = () => {
   const [showAddDiscardConfirm, setShowAddDiscardConfirm] = useState(false);
   const [isManagingTags, setIsManagingTags] = useState(false);
   const [viewType, setViewType] = useState<'grid' | 'list'>(localStorage.getItem('itemsViewType') as 'grid' | 'list' || 'grid');
+  const [gridColumns, setGridColumns] = useState<number>(Number(localStorage.getItem('itemsGridColumns')) || 2);
+  const [listColumns, setListColumns] = useState<number>(Number(localStorage.getItem('itemsListColumns')) || 1);
+  const [gridRows, setGridRows] = useState<number>(Number(localStorage.getItem('itemsGridRows')) || 20);
+  const [listRows, setListRows] = useState<number>(Number(localStorage.getItem('itemsListRows')) || 20);
+  const [listScrollMode, setListScrollMode] = useState<'vertical' | 'horizontal'>(localStorage.getItem('listScrollMode') as 'vertical' | 'horizontal' || 'horizontal');
+  const [applyOnlyToDesktop, setApplyOnlyToDesktop] = useState<boolean>(localStorage.getItem('applyOnlyToDesktop') === 'true');
+  const [showDisplaySettings, setShowDisplaySettings] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth > 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   // Edit states
   const [editingItem, setEditingItem] = useState<any | null>(null);
@@ -299,6 +313,13 @@ const ItemsPage = () => {
             <div className="header-right-actions">
               <div className="view-toggle-container">
                 <button 
+                  className="view-toggle-btn"
+                  onClick={() => setShowDisplaySettings(true)}
+                  title="Display Settings"
+                >
+                  <Settings size={20} />
+                </button>
+                <button 
                   className={`view-toggle-btn ${viewType === 'grid' ? 'active' : ''}`}
                   onClick={() => toggleView('grid')}
                   title="Grid View"
@@ -365,10 +386,10 @@ const ItemsPage = () => {
                 key={tag} 
                 className={`filter-pill ${isActive ? 'active' : ''}`}
                 style={{ 
-                  backgroundColor: isActive ? colors.text : colors.bg, 
+                  backgroundColor: colors.bg, 
                   color: isActive ? '#ffffff' : colors.text,
-                  border: isActive ? 'none' : `1px solid ${colors.bg}`,
-                  opacity: isActive ? 1 : 0.8
+                  border: `1px solid ${isActive ? colors.text : colors.border || colors.bg}`,
+                  opacity: isActive ? 1 : 0.6
                 }}
                 onClick={() => {
                   setSelectedTags(prev => 
@@ -383,7 +404,7 @@ const ItemsPage = () => {
         </div>
       </div>
 
-      <div className="items-list-container">
+      <div className="items-list-container" style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
         {itemsLoading ? (
           <div className="status-text-container">
             <div className="loader-small"></div>
@@ -395,8 +416,34 @@ const ItemsPage = () => {
             <p className="status-text">No items found.</p>
           </div>
         ) : (
-          <div className={viewType === 'grid' ? 'items-grid' : 'items-list-view'}>
-            {filteredItems.map((item) => {
+          <div 
+            className={viewType === 'grid' ? 'items-grid' : 'items-list-view'}
+            style={{ 
+              gridTemplateColumns: viewType === 'grid' 
+                ? `repeat(${(!isDesktop && applyOnlyToDesktop) ? 2 : gridColumns}, 1fr)` 
+                : (listScrollMode === 'vertical' 
+                    ? 'repeat(1, 1fr)' 
+                    : 'none'),
+              gridTemplateRows: viewType === 'list' && listScrollMode === 'horizontal'
+                ? `repeat(${listRows}, auto)`
+                : 'none',
+              display: 'grid',
+              gridAutoFlow: viewType === 'list' && listScrollMode === 'horizontal' ? 'column' : 'row',
+              gap: '12px',
+              minWidth: viewType === 'list' && listScrollMode === 'horizontal' 
+                ? 'max-content'
+                : (listScrollMode === 'horizontal' && viewType === 'grid'
+                    ? `${(!isDesktop && applyOnlyToDesktop ? 2 : gridColumns) * 160}px`
+                    : '100%'),
+              paddingBottom: '140px'
+            }}
+          >
+            {filteredItems.slice(0, viewType === 'grid' 
+              ? ((!isDesktop && applyOnlyToDesktop ? 2 : gridColumns) * gridRows)
+              : (listScrollMode === 'horizontal' 
+                  ? (filteredItems.length) 
+                  : (999)) // Vertical list ignores row limit
+            ).map((item) => {
               const box = boxes.find(b => b.id === item.boxId);
               const warranty = item.warrantyExpire ? getWarrantyStatus(item.warrantyExpire) : null;
               
@@ -745,6 +792,168 @@ const ItemsPage = () => {
             </div>
           </div>
 
+      )}
+
+      {showDisplaySettings && (
+        <div className="action-sheet-overlay" onClick={() => setShowDisplaySettings(false)}>
+          <div className="action-sheet" onClick={e => e.stopPropagation()}>
+            <div className="action-sheet-header">
+              <h3>Display Settings</h3>
+              <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px'}}>
+                Customize your item view layout.
+              </p>
+            </div>
+            <div className="action-sheet-options" style={{ padding: '20px' }}>
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span>Grid Columns</span>
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                  <button 
+                    className="stepper-btn" 
+                    onClick={() => {
+                      const val = Math.max(1, gridColumns - 1);
+                      setGridColumns(val);
+                      localStorage.setItem('itemsGridColumns', String(val));
+                    }}
+                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    <Minus size={20} />
+                  </button>
+                  <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{gridColumns}</span>
+                  <button 
+                    className="stepper-btn" 
+                    onClick={() => {
+                      const val = Math.min(6, gridColumns + 1);
+                      setGridColumns(val);
+                      localStorage.setItem('itemsGridColumns', String(val));
+                    }}
+                    style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span>Grid Rows (Max)</span>
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                  <button 
+                    className="stepper-btn" 
+                    onClick={() => {
+                      const val = Math.max(1, gridRows - 1);
+                      setGridRows(val);
+                      localStorage.setItem('itemsGridRows', String(val));
+                    }}
+                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    <Minus size={20} />
+                  </button>
+                  <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{gridRows}</span>
+                  <button 
+                    className="stepper-btn" 
+                    onClick={() => {
+                      const val = Math.min(100, gridRows + 1);
+                      setGridRows(val);
+                      localStorage.setItem('itemsGridRows', String(val));
+                    }}
+                    style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span>List Scroll Mode</span>
+                </label>
+                <div style={{ display: 'flex', background: 'var(--surface-hover)', padding: '4px', borderRadius: '12px', gap: '4px' }}>
+                  <button 
+                    className={`view-toggle-btn ${listScrollMode === 'vertical' ? 'active' : ''}`}
+                    onClick={() => {
+                      setListScrollMode('vertical');
+                      localStorage.setItem('listScrollMode', 'vertical');
+                    }}
+                    style={{ flex: 1, padding: '10px' }}
+                  >
+                    Vertical
+                  </button>
+                  <button 
+                    className={`view-toggle-btn ${listScrollMode === 'horizontal' ? 'active' : ''}`}
+                    onClick={() => {
+                      setListScrollMode('horizontal');
+                      localStorage.setItem('listScrollMode', 'horizontal');
+                    }}
+                    style={{ flex: 1, padding: '10px' }}
+                  >
+                    Horizontal
+                  </button>
+                </div>
+              </div>
+
+              {listScrollMode === 'horizontal' && (
+                <div className="form-group" style={{ marginBottom: '24px' }}>
+                  <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <span>List Rows</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => {
+                        const val = Math.max(1, listRows - 1);
+                        setListRows(val);
+                        localStorage.setItem('itemsListRows', String(val));
+                      }}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{listRows}</span>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => {
+                        const val = Math.min(10, listRows + 1);
+                        setListRows(val);
+                        localStorage.setItem('itemsListRows', String(val));
+                      }}
+                      style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="form-group" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => {
+                const val = !applyOnlyToDesktop;
+                setApplyOnlyToDesktop(val);
+                localStorage.setItem('applyOnlyToDesktop', String(val));
+              }}>
+                <div style={{ 
+                  width: '24px', 
+                  height: '24px', 
+                  borderRadius: '6px', 
+                  border: '2px solid var(--primary-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: applyOnlyToDesktop ? 'var(--primary-color)' : 'transparent',
+                  transition: 'all 0.2s'
+                }}>
+                  {applyOnlyToDesktop && <CheckCircle2 size={16} color="white" />}
+                </div>
+                <span style={{ fontSize: '15px', fontWeight: '600' }}>Apply only to Web (Desktop)</span>
+              </div>
+
+              <button className="option-btn primary" onClick={() => setShowDisplaySettings(false)}>
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <input 
