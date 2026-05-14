@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Camera, Image, Plus, ArrowLeft, Star, Trash2, AlertCircle } from 'lucide-react';
+import { X, Camera, Image, Plus, ArrowLeft, Star } from 'lucide-react';
 import { getWarrantyStatus } from '../utils/warranty';
 import { useItemTags } from '../hooks/useItemTags';
 import { getTagColor } from '../utils/tagColors';
