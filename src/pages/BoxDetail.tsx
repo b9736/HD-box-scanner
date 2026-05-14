@@ -38,6 +38,7 @@ const BoxDetail = () => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const cameraInputRef = React.useRef<HTMLInputElement>(null);
   const [showExpired, setShowExpired] = useState(localStorage.getItem('showExpiredStatus') !== 'false');
+  const [selectedTagFilters, setSelectedTagFilters] = useState<string[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
@@ -111,6 +112,7 @@ const BoxDetail = () => {
     setEditName(box.name);
     setEditRoom(box.room);
     setEditHasQRCode(!!box.hasQRCode);
+    setSelectedTagFilters([]);
     setIsEditing(false);
   };
 
@@ -359,8 +361,52 @@ const BoxDetail = () => {
       )}
 
       <div className="items-section no-print">
-        <div className="section-header-inline">
-          <div className="section-header">Items ({items.length})</div>
+        <div className="section-header-inline" style={{ flexWrap: 'wrap', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+            <div className="section-header" style={{ whiteSpace: 'nowrap' }}>Items ({items.length})</div>
+            
+            {/* Tag Filter Bar */}
+            <div className="header-tag-filter" style={{ 
+              display: 'flex', 
+              gap: '6px', 
+              flexWrap: 'wrap',
+              flex: 1
+            }}>
+              {Array.from(new Set(items.flatMap(item => item.tags || []))).map(tag => {
+                const colors = getTagColor(tag);
+                const isActive = selectedTagFilters.includes(tag);
+                return (
+                  <span 
+                    key={tag}
+                    onClick={() => {
+                      if (isActive) {
+                        setSelectedTagFilters(selectedTagFilters.filter(t => t !== tag));
+                      } else {
+                        setSelectedTagFilters([...selectedTagFilters, tag]);
+                      }
+                    }}
+                    style={{
+                      fontSize: '11px',
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      backgroundColor: colors.bg,
+                      color: colors.text,
+                      border: `1px solid ${isActive ? 'white' : colors.border}`,
+                      opacity: isActive ? 1 : 0.6,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                      transition: 'all 0.2s ease',
+                      boxShadow: isActive ? `0 0 10px ${colors.bg}` : 'none',
+                      transform: isActive ? 'scale(1.05)' : 'scale(1)'
+                    }}
+                  >
+                    {tag}
+                  </span>
+                );
+              })}
+            </div>
+          </div>
+
           <button onClick={() => setIsAdding(true)} className="add-item-btn-small">
             <Plus size={16} /> Add
           </button>
@@ -390,8 +436,10 @@ const BoxDetail = () => {
               <p className="status-text">Empty box.</p>
             </div>
           ) : (
-            items.map(item => (
-              <div key={item.id} className="item-row" onClick={() => setEditingItem(item)}>
+            items
+              .filter(item => selectedTagFilters.length === 0 || selectedTagFilters.some(tag => (item.tags || []).includes(tag)))
+              .map(item => (
+                <div key={item.id} className="item-row" onClick={() => setEditingItem(item)}>
                 <div className="item-row-left">
                   {item.imageUrl && (
                     <img 
