@@ -77,6 +77,7 @@ const ItemsPage = () => {
     if (!newItemTagInput.trim()) return;
     
     const newTags = newItemTagInput.split(',').map(t => t.trim()).filter(t => t !== '');
+    newTags.forEach(t => addTag(t)); // Make them permanent
     setSelectedNewItemTags(prev => Array.from(new Set([...prev, ...newTags])));
     setNewItemTagInput('');
   };
@@ -86,6 +87,7 @@ const ItemsPage = () => {
     if (!batchTags.trim()) return;
     
     const newTags = batchTags.split(',').map(t => t.trim()).filter(t => t !== '');
+    newTags.forEach(t => addTag(t)); // Make them permanent
     setSelectedBatchTags(prev => Array.from(new Set([...prev, ...newTags])));
     setBatchTags('');
   };
@@ -557,7 +559,34 @@ const ItemsPage = () => {
               </div>
 
               <div className="form-group">
-                <label>Tags (New tags only)</label>
+                <label>Tags</label>
+                {selectedNewItemTags.length > 0 && (
+                  <div className="edit-tags-container" style={{ marginBottom: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {selectedNewItemTags.map(tag => {
+                      const colors = getTagColor(tag);
+                      return (
+                        <span 
+                          key={tag} 
+                          className="tag-pill" 
+                          style={{ 
+                            backgroundColor: colors.bg, 
+                            color: colors.text, 
+                            borderColor: colors.border,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '4px 10px',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            border: '1px solid'
+                          }}
+                        >
+                          {tag} <X size={14} onClick={() => setSelectedNewItemTags(prev => prev.filter(t => t !== tag))} style={{ cursor: 'pointer', opacity: 0.7 }} />
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
                 <div className="tag-input-wrapper" style={{ marginBottom: '12px' }}>
                   <input 
                     type="text" 
@@ -572,7 +601,9 @@ const ItemsPage = () => {
                   </button>
                 </div>
                   <div className="tag-suggestions">
-                    {globalItemTags.map(tag => {
+                    {globalItemTags
+                      .filter(tag => !selectedNewItemTags.includes(tag))
+                      .map(tag => {
                       const colors = getTagColor(tag);
                       const isSelected = selectedNewItemTags.includes(tag);
                       return (
@@ -711,6 +742,7 @@ const ItemsPage = () => {
             setImageSourceModal({ type });
           }}
           onPreviewImage={(images, index) => setFullscreenImage({ images, index })}
+          onAddTag={addTag}
         />
       )}
 
@@ -788,7 +820,34 @@ const ItemsPage = () => {
                   : `Remove these tags from the ${selectedIds.length} selected items.`}
               </p>
               <div className="form-group">
-                <label>Tags (New tags only)</label>
+                <label>Tags</label>
+                {selectedBatchTags.length > 0 && (
+                  <div className="edit-tags-container" style={{ marginBottom: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {selectedBatchTags.map(tag => {
+                      const colors = getTagColor(tag);
+                      return (
+                        <span 
+                          key={tag} 
+                          className="tag-pill" 
+                          style={{ 
+                            backgroundColor: colors.bg, 
+                            color: colors.text, 
+                            borderColor: colors.border,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            padding: '4px 10px',
+                            borderRadius: '8px',
+                            fontSize: '12px',
+                            border: '1px solid'
+                          }}
+                        >
+                          {tag} <X size={14} onClick={() => setSelectedBatchTags(prev => prev.filter(t => t !== tag))} style={{ cursor: 'pointer', opacity: 0.7 }} />
+                        </span>
+                      );
+                    })}
+                  </div>
+                )}
                 <div className="tag-input-wrapper" style={{ marginBottom: '12px' }}>
                   <input 
                     type="text" 
@@ -804,7 +863,9 @@ const ItemsPage = () => {
                   </button>
                 </div>
                   <div className="tag-suggestions">
-                    {globalItemTags.map(tag => {
+                    {globalItemTags
+                      .filter(tag => !selectedBatchTags.includes(tag))
+                      .map(tag => {
                       const colors = getTagColor(tag);
                       const isSelected = selectedBatchTags.includes(tag);
                       return (

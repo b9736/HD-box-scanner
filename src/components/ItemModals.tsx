@@ -41,6 +41,7 @@ interface ItemEditModalProps {
   onUpdate: (updates: any) => Promise<void>;
   onImageRequest: (type: 'item' | 'receipt') => void;
   onPreviewImage: (images: string[], index: number) => void;
+  onAddTag?: (name: string) => void;
 }
 
 export const ItemEditModal: React.FC<ItemEditModalProps> = ({ 
@@ -51,7 +52,8 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   onClose, 
   onUpdate, 
   onImageRequest,
-  onPreviewImage
+  onPreviewImage,
+  onAddTag
 }) => {
   const [isClosing, setIsClosing] = useState(false);
   const [name, setName] = useState(item.name);
@@ -149,6 +151,10 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
     if (!tagInput.trim()) return;
     
     const newTags = tagInput.split(',').map(t => t.trim()).filter(t => t !== '');
+    // Add to global collection if callback exists
+    if (onAddTag) {
+      newTags.forEach(t => onAddTag(t));
+    }
     setSelectedTags(prev => Array.from(new Set([...prev, ...newTags])));
     setTagInput('');
   };
@@ -228,7 +234,34 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label>Tags (New tags only)</label>
+            <label>Tags</label>
+            {selectedTags.length > 0 && (
+              <div className="edit-tags-container" style={{ marginBottom: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {selectedTags.map(tag => {
+                  const colors = getTagColor(tag);
+                  return (
+                    <span 
+                      key={tag} 
+                      className="tag-pill" 
+                      style={{ 
+                        backgroundColor: colors.bg, 
+                        color: colors.text, 
+                        borderColor: colors.border,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '4px 10px',
+                        borderRadius: '8px',
+                        fontSize: '12px',
+                        border: '1px solid'
+                      }}
+                    >
+                      {tag} <X size={14} onClick={() => handleTagToggle(tag)} style={{ cursor: 'pointer', opacity: 0.7 }} />
+                    </span>
+                  );
+                })}
+              </div>
+            )}
             <div className="tag-input-wrapper" style={{ marginBottom: '12px' }}>
               <input 
                 type="text" 
@@ -243,7 +276,9 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
               </button>
             </div>
               <div className="tag-suggestions">
-                {allAvailableTags.map(tag => {
+                {allAvailableTags
+                  .filter(tag => !selectedTags.includes(tag))
+                  .map(tag => {
                   const colors = getTagColor(tag);
                   const isSelected = selectedTags.includes(tag);
                   return (
