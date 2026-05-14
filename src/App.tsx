@@ -146,10 +146,10 @@ const Home = () => {
                 key={tag} 
                 className={`filter-pill ${isActive ? 'active' : ''}`}
                 style={{ 
-                  backgroundColor: isActive ? colors.text : colors.bg, 
+                  backgroundColor: colors.bg, 
                   color: isActive ? '#ffffff' : colors.text,
-                  border: isActive ? 'none' : `1px solid ${colors.bg}`,
-                  opacity: isActive ? 1 : 0.8
+                  border: `1px solid ${isActive ? colors.text : colors.border || colors.bg}`,
+                  opacity: isActive ? 1 : 0.6
                 }}
                 onClick={() => {
                   setSelectedTags(prev => 
