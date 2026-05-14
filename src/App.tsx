@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Scan, Search, Package, Settings, Plus, Sliders } from 'lucide-react';
+import { Scan, Search, Package, Settings, Plus, Sliders, Menu, Image, Folder } from 'lucide-react';
 import { getTagColor } from './utils/tagColors';
 import { getWarrantyStatus } from './utils/warranty';
 import './index.css';
@@ -258,6 +258,7 @@ const Home = () => {
 const AppContent = () => {
   const { user, loading } = useAuth();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const location = useLocation();
 
   useEffect(() => {
@@ -278,16 +279,32 @@ const AppContent = () => {
     return <Login />;
   }
 
+  const SidebarContent = () => (
+    <>
+      <div className="header-title" style={{marginBottom: '32px'}}>HD Scanner</div>
+      <nav className="side-nav">
+        <Link to="/" className={`nav-item ${location.pathname === '/' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Package size={20} /> <span>Boxes</span></Link>
+        <Link to="/items" className={`nav-item ${location.pathname === '/items' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Search size={20} /> <span>Items</span></Link>
+        <Link to="/gallery" className={`nav-item ${location.pathname === '/gallery' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Image size={20} /> <span>Gallery</span></Link>
+        <Link to="/folders" className={`nav-item ${location.pathname === '/folders' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Folder size={20} /> <span>Folders</span></Link>
+        <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Settings size={20} /> <span>Settings</span></Link>
+      </nav>
+    </>
+  );
+
   return (
     <div className="app-container">
+        {isMobile && isMenuOpen && (
+          <div className="mobile-sidebar-overlay" onClick={() => setIsMenuOpen(false)}>
+            <aside className={`mobile-sidebar ${isMenuOpen ? 'open' : ''}`} onClick={e => e.stopPropagation()}>
+              <SidebarContent />
+            </aside>
+          </div>
+        )}
+
         {!isMobile && (
           <aside className="sidebar">
-            <div className="header-title" style={{marginBottom: '32px'}}>HD Scanner</div>
-            <nav className="side-nav">
-              <Link to="/" className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}><Package size={20} /> <span>Boxes</span></Link>
-              <Link to="/items" className={`nav-item ${location.pathname === '/items' ? 'active' : ''}`}><Search size={20} /> <span>Items</span></Link>
-              <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`}><Settings size={20} /> <span>Settings</span></Link>
-            </nav>
+            <SidebarContent />
           </aside>
         )}
 
@@ -300,6 +317,8 @@ const AppContent = () => {
               <Route path="/scan" element={<ScanPage />} />
               <Route path="/box/:id" element={<BoxDetail />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/gallery" element={<div className="page-content"><h2>Gallery</h2><p>Coming soon...</p></div>} />
+              <Route path="/folders" element={<div className="page-content"><h2>Folders</h2><p>Coming soon...</p></div>} />
             </Routes>
           </main>
         </div>
@@ -318,10 +337,10 @@ const AppContent = () => {
               <Scan size={24} />
               <span>Scan</span>
             </Link>
-            <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`}>
-              <Settings size={24} />
-              <span>Settings</span>
-            </Link>
+            <div className="nav-item" onClick={() => setIsMenuOpen(true)} style={{ cursor: 'pointer' }}>
+              <Menu size={24} />
+              <span>Menu</span>
+            </div>
           </nav>
         )}
       </div>
