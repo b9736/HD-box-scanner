@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Camera, Image, Plus, ArrowLeft, Star, Tag, Edit2, Trash2 } from 'lucide-react';
+import { X, Camera, Image, Plus, ArrowLeft, Star, Tag, Edit2, Trash2, Download } from 'lucide-react';
 import { getWarrantyStatus } from '../utils/warranty';
 import { useItemTags } from '../hooks/useItemTags';
 import { getTagColor } from '../utils/tagColors';
 import { ConfirmationModal } from './ConfirmationModal';
+import { QRCodeCanvas } from 'qrcode.react';
 
 export const ImageSourceModal: React.FC<{onSelect: (s: 'camera' | 'gallery') => void, onClose: () => void}> = ({ onSelect, onClose }) => {
   const [isClosing, setIsClosing] = useState(false);
@@ -909,6 +910,57 @@ export const TagManagementModal: React.FC<{onClose: () => void}> = ({ onClose })
         onConfirm={confirmModal.onConfirm}
         onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
       />
+    </div>
+  );
+};
+export const QRCodePreviewModal: React.FC<{
+  value: string;
+  title: string;
+  onClose: () => void;
+}> = ({ value, title, onClose }) => {
+  const [isClosing, setIsClosing] = useState(false);
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(onClose, 300);
+  };
+
+  const handleDownload = () => {
+    const canvas = document.querySelector('.qr-modal-canvas canvas') as HTMLCanvasElement;
+    if (canvas) {
+      const url = canvas.toDataURL("image/png");
+      const link = document.createElement('a');
+      link.download = `qr-${title.replace(/\s+/g, '-').toLowerCase()}.png`;
+      link.href = url;
+      link.click();
+    }
+  };
+
+  return (
+    <div className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
+      <div className={`modal-content qr-preview-modal ${isClosing ? 'closing' : ''}`} onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center', padding: '32px' }}>
+        <div className="modal-header" style={{ marginBottom: '24px', justifyContent: 'center', border: 'none' }}>
+          <h3 style={{ margin: 0 }}>QR Code: {title}</h3>
+        </div>
+        
+        <div className="qr-modal-canvas" style={{ background: 'white', padding: '20px', borderRadius: '16px', display: 'inline-block', marginBottom: '24px', boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }}>
+          <QRCodeCanvas 
+            value={value} 
+            size={256} 
+            level="H" 
+            includeMargin={true} 
+          />
+        </div>
+
+        <div className="qr-modal-actions" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <button className="option-btn primary" onClick={handleDownload} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '48px', borderRadius: '12px' }}>
+            <Download size={20} /> Download PNG
+          </button>
+          <button className="option-btn" onClick={handleClose} style={{ width: '100%', height: '48px', borderRadius: '12px' }}>
+            Close
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

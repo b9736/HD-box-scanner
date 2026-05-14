@@ -8,10 +8,9 @@ import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useItems } from '../hooks/useItems';
 import { useBoxes } from '../hooks/useBoxes';
-import { useGlobalTags } from '../hooks/useGlobalTags';
 import { QRCodeCanvas } from 'qrcode.react';
 import { compressImage, blobToBase64 } from '../utils/imageUtils';
-import { ItemEditModal, ImageSourceModal, FullscreenGallery } from '../components/ItemModals';
+import { ItemEditModal, ImageSourceModal, FullscreenGallery, QRCodePreviewModal } from '../components/ItemModals';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 
 const BoxDetail = () => {
@@ -21,15 +20,11 @@ const BoxDetail = () => {
   const { items, loading: itemsLoading, addItem, removeItem, updateItem } = useItems(id || '');
   const { updateBox, deleteBox } = useBoxes();
   
-  const { tags: globalTags } = useGlobalTags();
-  
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState('');
   const [editRoom, setEditRoom] = useState('');
-  const [editTags, setEditTags] = useState<string[]>([]);
+  const [editHasQRCode, setEditHasQRCode] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [newTag, setNewTag] = useState('');
-  
   const [newItemName, setNewItemName] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -38,6 +33,7 @@ const BoxDetail = () => {
   const [imageSourceModal, setImageSourceModal] = useState<{type: 'box' | 'item' | 'receipt', itemId?: string} | null>(null);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [isClosingDiscard, setIsClosingDiscard] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const cameraInputRef = React.useRef<HTMLInputElement>(null);
@@ -77,7 +73,7 @@ const BoxDetail = () => {
           setBox({ id: docSnap.id, ...data });
           setEditName(data.name);
           setEditRoom(data.room);
-          setEditTags(data.tags || []);
+          setEditHasQRCode(!!data.hasQRCode);
         } else {
           navigate('/');
         }
@@ -92,16 +88,16 @@ const BoxDetail = () => {
   const handleUpdateBox = async (e: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!id || !editName) return;
-    await updateBox(id, { name: editName, room: editRoom, tags: editTags });
-    setBox({ ...box, name: editName, room: editRoom, tags: editTags });
+    await updateBox(id, { name: editName, room: editRoom, hasQRCode: editHasQRCode });
+    setBox({ ...box, name: editName, room: editRoom, hasQRCode: editHasQRCode });
     setIsEditing(false);
   };
 
   const handleCancelEdit = () => {
     // Check if anything changed
     const hasChanged = editName !== box.name || 
-                       editRoom !== box.room || 
-                       JSON.stringify(editTags) !== JSON.stringify(box.tags || []);
+                       editRoom !== box.room ||
+                       editHasQRCode !== !!box.hasQRCode;
     
     if (hasChanged) {
       setShowDiscardModal(true);
@@ -114,7 +110,7 @@ const BoxDetail = () => {
     // Reset to original values
     setEditName(box.name);
     setEditRoom(box.room);
-    setEditTags(box.tags || []);
+    setEditHasQRCode(!!box.hasQRCode);
     setIsEditing(false);
   };
 
@@ -133,17 +129,6 @@ const BoxDetail = () => {
       setShowDiscardModal(false);
       setIsClosingDiscard(false);
     }, 300);
-  };
-
-  const handleAddTag = () => {
-    if (newTag && !editTags.includes(newTag)) {
-      setEditTags([...editTags, newTag]);
-      setNewTag('');
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setEditTags(editTags.filter(t => t !== tagToRemove));
   };
 
   const handleDeleteBox = async () => {
@@ -280,73 +265,17 @@ const BoxDetail = () => {
                   autoComplete="off"
                 />
               </div>
-            </div>
-            <div className="form-group">
-              <label>Tags</label>
-              <div className="edit-tags-container">
-                {editTags?.map(tag => {
-                  const colors = getTagColor(tag);
-                  return (
-                    <span 
-                      key={tag} 
-                      className="tag-pill"
-                      style={{ 
-                        backgroundColor: colors.bg, 
-                        color: colors.text,
-                        borderColor: colors.border
-                      }}
-                    >
-                      {tag} <X size={14} onClick={() => handleRemoveTag(tag)} />
-                    </span>
-                  );
-                })}
+              <div className="form-group" style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: '8px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={editHasQRCode} 
+                    onChange={(e) => setEditHasQRCode(e.target.checked)} 
+                    style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  />
+                  QR Code
+                </label>
               </div>
-              <div className="tag-input-wrapper" style={{ marginBottom: '12px' }}>
-                <input 
-                  type="text" 
-                  placeholder="Add a tag..." 
-                  value={newTag} 
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-                  style={{ border: 'none', backgroundColor: 'transparent' }}
-                />
-                <button type="button" className="tag-add-btn" onClick={handleAddTag} style={{ padding: '8px' }}>
-                  <Plus size={20} />
-                </button>
-              </div>
-              
-              {/* Global Tag Suggestions */}
-              {globalTags.length > 0 && (
-                <div style={{marginTop: '12px'}}>
-                  <div style={{fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '8px'}}>Quick Select Existing:</div>
-                  <div style={{display: 'flex', flexWrap: 'wrap', gap: '6px'}}>
-                    {globalTags
-                      .filter(tag => !editTags.includes(tag)) // Don't show tags already added
-                      .slice(0, 10) // Show top 10
-                      .map(tag => {
-                        const colors = getTagColor(tag);
-                        return (
-                          <span 
-                            key={tag} 
-                            onClick={() => setEditTags([...editTags, tag])}
-                            style={{ 
-                              fontSize: '11px',
-                              padding: '4px 10px',
-                              borderRadius: '8px',
-                              backgroundColor: 'rgba(255,255,255,0.05)',
-                              color: colors.text,
-                              cursor: 'pointer',
-                              border: `1px solid ${colors.border}`
-                            }}
-                          >
-                            + {tag}
-                          </span>
-                        );
-                      })
-                    }
-                  </div>
-                </div>
-              )}
             </div>
           </form>
         </div>
@@ -377,8 +306,8 @@ const BoxDetail = () => {
               </div>
             </div>
             {box.hasQRCode && (
-              <div className="box-qr-card" style={{ padding: 0, marginTop: 0 }}>
-                <QRCodeCanvas value={box.id} size={48} bgColor="#FFFFFF" fgColor="#000000" level="L" includeMargin={false} />
+              <div className="box-qr-card" style={{ padding: 0, marginTop: 0, cursor: 'pointer' }} onClick={() => setShowQRModal(true)}>
+                <QRCodeCanvas value={box.name} size={48} bgColor="#FFFFFF" fgColor="#000000" level="L" includeMargin={false} />
               </div>
             )}
           </div>
@@ -631,6 +560,14 @@ const BoxDetail = () => {
           </div>
         </div>
       )}
+      {showQRModal && (
+        <QRCodePreviewModal 
+          value={box.name} 
+          title={box.name} 
+          onClose={() => setShowQRModal(false)} 
+        />
+      )}
+
       <ConfirmationModal
         isOpen={confirmModal.isOpen}
         title={confirmModal.title}
