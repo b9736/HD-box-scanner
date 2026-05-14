@@ -43,6 +43,7 @@ interface ItemEditModalProps {
   onImageRequest: (type: 'item' | 'receipt') => void;
   onPreviewImage: (images: string[], index: number) => void;
   onAddTag?: (name: string) => void;
+  onDrop?: (type: 'item' | 'receipt', files: FileList) => void;
 }
 
 export const ItemEditModal: React.FC<ItemEditModalProps> = ({ 
@@ -54,9 +55,11 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   onUpdate, 
   onImageRequest,
   onPreviewImage,
-  onAddTag
+  onAddTag,
+  onDrop
 }) => {
   const [isClosing, setIsClosing] = useState(false);
+  const [dragType, setDragType] = useState<'item' | 'receipt' | null>(null);
   const [name, setName] = useState(item.name);
   const [quantity, setQuantity] = useState(item.quantity || 1);
   const [purchaseDate, setPurchaseDate] = useState(item.purchaseDate || '');
@@ -109,6 +112,23 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
     description !== (item.description || '') ||
     JSON.stringify([...selectedTags].sort()) !== JSON.stringify([...(item.tags || [])].sort()) ||
     tagInput !== '';
+
+  const handleDragOver = (e: React.DragEvent, type: 'item' | 'receipt') => {
+    e.preventDefault();
+    setDragType(type);
+  };
+
+  const handleDragLeave = () => {
+    setDragType(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, type: 'item' | 'receipt') => {
+    e.preventDefault();
+    setDragType(null);
+    if (e.dataTransfer.files.length > 0 && onDrop) {
+      onDrop(type, e.dataTransfer.files);
+    }
+  };
 
   const handleCloseAttempt = () => {
     if (hasChanges) {
@@ -181,58 +201,72 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
         </div>
         
         <form onSubmit={handleSubmit} className="item-edit-form">
-          <div className="gallery-section">
-            <label>Item Photos (Auto-saved)</label>
-            <div className="modal-gallery-scroll">
-              {(item.images || []).map((img: string, idx: number) => (
-                <div key={idx} className="modal-gallery-item">
-                  <img src={img} alt="" onClick={() => onPreviewImage(item.images || [], idx)} />
-                  <button type="button" className="delete-photo-btn" onClick={() => {
-                    setConfirmModal({
-                      isOpen: true,
-                      title: 'Delete Photo',
-                      message: 'Permanently delete this photo? Images are auto-saved.',
-                      type: 'destructive',
-                      onConfirm: () => {
-                        const newImages = item.images.filter((_: any, i: number) => i !== idx);
-                        onUpdate({ ...item, images: newImages, imageUrl: newImages[0] || '' });
-                      }
-                    });
-                  }}>
-                    <X size={12} />
-                  </button>
+          <div className="form-row-gallery" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
+            <div 
+              className={`gallery-section ${dragType === 'item' ? 'drag-active' : ''}`} 
+              style={{ flex: '1 1 200px', minWidth: '150px', marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: dragType === 'item' ? '2px dashed var(--primary-color)' : '2px dashed transparent', padding: '4px' }}
+              onDragOver={(e) => handleDragOver(e, 'item')}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, 'item')}
+            >
+              <label>Item Photos</label>
+              <div className="modal-gallery-scroll">
+                {(item.images || []).map((img: string, idx: number) => (
+                  <div key={idx} className="modal-gallery-item">
+                    <img src={img} alt="" onClick={() => onPreviewImage(item.images || [], idx)} />
+                    <button type="button" className="delete-photo-btn" onClick={() => {
+                      setConfirmModal({
+                        isOpen: true,
+                        title: 'Delete Photo',
+                        message: 'Permanently delete this photo? Images are auto-saved.',
+                        type: 'destructive',
+                        onConfirm: () => {
+                          const newImages = item.images.filter((_: any, i: number) => i !== idx);
+                          onUpdate({ ...item, images: newImages, imageUrl: newImages[0] || '' });
+                        }
+                      });
+                    }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                <div className="add-photo-box" onClick={() => onImageRequest('item')}>
+                  {isUploading ? '...' : <Camera size={20} />}
                 </div>
-              ))}
-              <div className="add-photo-box" onClick={() => onImageRequest('item')}>
-                {isUploading ? '...' : <Camera size={20} />}
               </div>
             </div>
-          </div>
 
-          <div className="gallery-section">
-            <label>Receipts & Docs</label>
-            <div className="modal-gallery-scroll">
-              {(item.receipts || []).map((img: string, idx: number) => (
-                <div key={idx} className="modal-gallery-item">
-                  <img src={img} alt="" onClick={() => onPreviewImage(item.receipts || [], idx)} />
-                  <button type="button" className="delete-photo-btn" onClick={() => {
-                    setConfirmModal({
-                      isOpen: true,
-                      title: 'Delete Receipt',
-                      message: 'Permanently delete this receipt/document?',
-                      type: 'destructive',
-                      onConfirm: () => {
-                        const newReceipts = item.receipts.filter((_: any, i: number) => i !== idx);
-                        onUpdate({ ...item, receipts: newReceipts, receiptUrl: newReceipts[0] || '' });
-                      }
-                    });
-                  }}>
-                    <X size={12} />
-                  </button>
+            <div 
+              className={`gallery-section ${dragType === 'receipt' ? 'drag-active' : ''}`} 
+              style={{ flex: '1 1 200px', minWidth: '150px', marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: dragType === 'receipt' ? '2px dashed var(--primary-color)' : '2px dashed transparent', padding: '4px' }}
+              onDragOver={(e) => handleDragOver(e, 'receipt')}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, 'receipt')}
+            >
+              <label>Receipts & Docs</label>
+              <div className="modal-gallery-scroll">
+                {(item.receipts || []).map((img: string, idx: number) => (
+                  <div key={idx} className="modal-gallery-item">
+                    <img src={img} alt="" onClick={() => onPreviewImage(item.receipts || [], idx)} />
+                    <button type="button" className="delete-photo-btn" onClick={() => {
+                      setConfirmModal({
+                        isOpen: true,
+                        title: 'Delete Receipt',
+                        message: 'Permanently delete this receipt/document?',
+                        type: 'destructive',
+                        onConfirm: () => {
+                          const newReceipts = item.receipts.filter((_: any, i: number) => i !== idx);
+                          onUpdate({ ...item, receipts: newReceipts, receiptUrl: newReceipts[0] || '' });
+                        }
+                      });
+                    }}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                <div className="add-photo-box" onClick={() => onImageRequest('receipt')}>
+                  {isUploading ? '...' : <Plus size={20} />}
                 </div>
-              ))}
-              <div className="add-photo-box" onClick={() => onImageRequest('receipt')}>
-                {isUploading ? '...' : <Plus size={20} />}
               </div>
             </div>
           </div>
@@ -390,6 +424,286 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
         onConfirm={confirmModal.onConfirm}
         onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
       />
+    </div>
+  );
+};
+
+export interface ItemAddModalProps {
+  boxes: any[];
+  isUploading: boolean;
+  onClose: () => void;
+  onSave: (data: any) => Promise<void>;
+  onImageRequest: (type: 'item' | 'receipt') => void;
+  onPreviewImage: (images: string[], index: number) => void;
+  onAddTag?: (name: string) => void;
+  tempImages?: string[];
+  tempReceipts?: string[];
+  onRemoveTempImage?: (type: 'item' | 'receipt', index: number) => void;
+  onDrop?: (type: 'item' | 'receipt', files: FileList) => void;
+}
+
+export const ItemAddModal: React.FC<ItemAddModalProps> = ({
+  boxes,
+  isUploading,
+  onClose,
+  onSave,
+  onImageRequest,
+  onPreviewImage,
+  onAddTag,
+  tempImages = [],
+  tempReceipts = [],
+  onRemoveTempImage,
+  onDrop
+}) => {
+  const [isClosing, setIsClosing] = useState(false);
+  const [dragType, setDragType] = useState<'item' | 'receipt' | null>(null);
+  const [name, setName] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [purchaseDate, setPurchaseDate] = useState('');
+  const [warrantyExpire, setWarrantyExpire] = useState('');
+  const [description, setDescription] = useState('');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
+  const [selectedBoxId, setSelectedBoxId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const { tags: allAvailableTags } = useItemTags();
+
+  const handleDragOver = (e: React.DragEvent, type: 'item' | 'receipt') => {
+    e.preventDefault();
+    setDragType(type);
+  };
+
+  const handleDragLeave = () => {
+    setDragType(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, type: 'item' | 'receipt') => {
+    e.preventDefault();
+    setDragType(null);
+    if (e.dataTransfer.files.length > 0 && onDrop) {
+      onDrop(type, e.dataTransfer.files);
+    }
+  };
+
+  const handlePurchaseDateChange = (date: string) => {
+    setPurchaseDate(date);
+    if (date) {
+      const val = parseInt(localStorage.getItem('defaultWarrantyValue') || '2');
+      const unit = localStorage.getItem('defaultWarrantyUnit') || 'years';
+      const pDate = new Date(date + 'T00:00:00');
+      if (unit === 'days') pDate.setDate(pDate.getDate() + val);
+      else if (unit === 'months') pDate.setMonth(pDate.getMonth() + val);
+      else if (unit === 'years') pDate.setFullYear(pDate.getFullYear() + val);
+      
+      const year = pDate.getFullYear();
+      const month = String(pDate.getMonth() + 1).padStart(2, '0');
+      const day = String(pDate.getDate()).padStart(2, '0');
+      setWarrantyExpire(`${year}-${month}-${day}`);
+    }
+  };
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(onClose, 300);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSaving(true);
+    try {
+      const manualTags = tagInput.split(',').map(t => t.trim()).filter(t => t !== '');
+      const finalTags = Array.from(new Set([...selectedTags, ...manualTags]));
+      
+      await onSave({
+        name,
+        quantity: Number(quantity),
+        purchaseDate,
+        warrantyExpire,
+        description,
+        tags: finalTags,
+        boxId: selectedBoxId,
+        images: tempImages,
+        receipts: tempReceipts
+      });
+      handleClose();
+    } catch (err) {
+      console.error("Save error", err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleTagToggle = (tag: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
+  return (
+    <div className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
+      <div className={`modal-content ${isClosing ? 'closing' : ''}`} onClick={e => e.stopPropagation()}>
+        <div className="modal-header sticky-header">
+          <div className="modal-header-left">
+            <h3>Add New Item</h3>
+            <button className="submit-btn compact-save" type="submit" disabled={saving || !name.trim()} onClick={handleSubmit}>
+              {saving ? '...' : 'Save'}
+            </button>
+          </div>
+          <button className="close-btn" type="button" onClick={handleClose}>Close</button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="item-edit-form">
+          <div className="form-row-gallery" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
+            <div 
+              className={`gallery-section ${dragType === 'item' ? 'drag-active' : ''}`} 
+              style={{ flex: '1 1 200px', minWidth: '150px', marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: dragType === 'item' ? '2px dashed var(--primary-color)' : '2px dashed transparent', padding: '4px' }}
+              onDragOver={(e) => handleDragOver(e, 'item')}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, 'item')}
+            >
+              <label>Item Photos</label>
+              <div className="modal-gallery-scroll">
+                {tempImages.map((img, idx) => (
+                  <div key={idx} className="modal-gallery-item">
+                    <img src={img} alt="" onClick={() => onPreviewImage(tempImages, idx)} />
+                    <button type="button" className="delete-photo-btn" onClick={() => onRemoveTempImage?.('item', idx)}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                <div className="add-photo-box" onClick={() => onImageRequest('item')}>
+                  {isUploading ? '...' : <Camera size={20} />}
+                </div>
+              </div>
+            </div>
+
+            <div 
+              className={`gallery-section ${dragType === 'receipt' ? 'drag-active' : ''}`} 
+              style={{ flex: '1 1 200px', minWidth: '150px', marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: dragType === 'receipt' ? '2px dashed var(--primary-color)' : '2px dashed transparent', padding: '4px' }}
+              onDragOver={(e) => handleDragOver(e, 'receipt')}
+              onDragLeave={handleDragLeave}
+              onDrop={(e) => handleDrop(e, 'receipt')}
+            >
+              <label>Receipts & Docs</label>
+              <div className="modal-gallery-scroll">
+                {tempReceipts.map((img, idx) => (
+                  <div key={idx} className="modal-gallery-item">
+                    <img src={img} alt="" onClick={() => onPreviewImage(tempReceipts, idx)} />
+                    <button type="button" className="delete-photo-btn" onClick={() => onRemoveTempImage?.('receipt', idx)}>
+                      <X size={12} />
+                    </button>
+                  </div>
+                ))}
+                <div className="add-photo-box" onClick={() => onImageRequest('receipt')}>
+                  {isUploading ? '...' : <Plus size={20} />}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Item Name *</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} required placeholder="What are you adding?" autoFocus />
+          </div>
+
+          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="form-group">
+              <label>Quantity</label>
+              <input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} min="1" />
+            </div>
+            <div className="form-group">
+              <label>Select Box (Optional)</label>
+              <select value={selectedBoxId} onChange={e => setSelectedBoxId(e.target.value)} className="premium-select">
+                <option value="">Unassigned</option>
+                {boxes.map(box => (
+                  <option key={box.id} value={box.id}>{box.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div className="form-group">
+              <label>Purchase Date</label>
+              <input type="date" value={purchaseDate} onChange={e => handlePurchaseDateChange(e.target.value)} />
+            </div>
+            <div className="form-group">
+              <label>Warranty Expire</label>
+              <input type="date" value={warrantyExpire} onChange={e => setWarrantyExpire(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Description (Optional)</label>
+            <textarea 
+              value={description} 
+              onChange={e => setDescription(e.target.value)} 
+              placeholder="Notes, specs, or where exactly in the box..."
+              className="premium-textarea"
+              rows={3}
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Tags</label>
+            {selectedTags.length > 0 && (
+              <div className="edit-tags-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+                {selectedTags.map(tag => {
+                  const colors = getTagColor(tag);
+                  return (
+                    <span 
+                      key={tag} 
+                      className="tag-pill" 
+                      style={{ backgroundColor: colors.bg, color: colors.text, borderColor: colors.border }}
+                      onClick={() => handleTagToggle(tag)}
+                    >
+                      {tag} <X size={14} />
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+            <div className="tag-input-wrapper">
+              <input 
+                type="text" 
+                placeholder="tools, electronics..." 
+                value={tagInput} 
+                onChange={e => setTagInput(e.target.value)}
+                onKeyPress={e => e.key === 'Enter' && (e.preventDefault(), setTagInput(''))}
+              />
+              <button type="button" className="tag-add-btn" onClick={() => {
+                if (tagInput.trim()) {
+                  const newTags = tagInput.split(',').map(t => t.trim()).filter(t => t !== '');
+                  if (onAddTag) newTags.forEach(t => onAddTag(t));
+                  setSelectedTags(prev => Array.from(new Set([...prev, ...newTags])));
+                  setTagInput('');
+                }
+              }}>
+                <Plus size={20} />
+              </button>
+            </div>
+            <div className="tag-suggestions" style={{ marginTop: '12px' }}>
+              {allAvailableTags
+                .filter(tag => !selectedTags.includes(tag))
+                .map(tag => {
+                const colors = getTagColor(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    className="suggestion-chip"
+                    style={{ backgroundColor: colors.bg, color: colors.text, borderColor: colors.border }}
+                    onClick={() => handleTagToggle(tag)}
+                  >
+                    {tag}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

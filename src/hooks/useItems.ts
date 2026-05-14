@@ -70,19 +70,36 @@ export const useItems = (boxId?: string) => {
     return () => unsubscribe();
   }, [boxId, user]);
 
-  const addItem = async (name: string, quantity: number = 1, overrideBoxId?: string, description?: string, tags: string[] = []) => {
+  const addItem = async (
+    name: string, 
+    quantity: number = 1, 
+    overrideBoxId?: string, 
+    description?: string, 
+    tags: string[] = [],
+    images: string[] = [],
+    receipts: string[] = [],
+    purchaseDate: string = '',
+    warrantyExpire: string = ''
+  ) => {
     if (!user) throw new Error("User not authenticated");
 
     try {
-      await addDoc(collection(db, "items"), {
+      const docRef = await addDoc(collection(db, "items"), {
         name,
         quantity,
         description: description || '',
         tags,
-        boxId: overrideBoxId || boxId,
+        boxId: overrideBoxId || boxId || '',
+        images,
+        receipts,
+        imageUrl: images[0] || '',
+        receiptUrl: receipts[0] || '',
+        purchaseDate,
+        warrantyExpire,
         uid: user.uid,
         createdAt: serverTimestamp(),
       });
+      return docRef.id;
     } catch (err) {
       console.error("Error adding item:", err);
       throw err;

@@ -5,7 +5,7 @@ import { useBoxes } from '../hooks/useBoxes';
 import { useItemTags } from '../hooks/useItemTags';
 import { getWarrantyStatus } from '../utils/warranty';
 import { getTagColor } from '../utils/tagColors';
-import { ItemEditModal, ImageSourceModal, FullscreenGallery } from '../components/ItemModals';
+import { ItemEditModal, ItemAddModal, ImageSourceModal, FullscreenGallery } from '../components/ItemModals';
 import { compressImage, blobToBase64 } from '../utils/imageUtils';
 import { ConfirmationModal } from '../components/ConfirmationModal';
 
@@ -16,10 +16,8 @@ const ItemsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isAddingItem, setIsAddingItem] = useState(false);
-  const [newItemName, setNewItemName] = useState('');
-  const [newItemDescription, setNewItemDescription] = useState('');
-  const [selectedNewItemTags, setSelectedNewItemTags] = useState<string[]>([]);
-  const [newItemTagInput, setNewItemTagInput] = useState('');
+  const [tempAddImages, setTempAddImages] = useState<string[]>([]);
+  const [tempAddReceipts, setTempAddReceipts] = useState<string[]>([]);
   const [showAddDiscardConfirm, setShowAddDiscardConfirm] = useState(false);
   const [isManagingTags, setIsManagingTags] = useState(false);
   const [newTagCategory, setNewTagCategory] = useState('');
@@ -102,23 +100,25 @@ const ItemsPage = () => {
     setBatchTags('');
   };
 
-  const handleAddItem = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newItemName || !selectedBoxId) return;
-
+  const handleSaveNewItem = async (data: any) => {
     try {
-      const manualTags = newItemTagInput.split(',').map(t => t.trim()).filter(t => t !== '');
-      const finalTags = Array.from(new Set([...selectedNewItemTags, ...manualTags]));
-      
-      await addItem(newItemName, 1, selectedBoxId, newItemDescription, finalTags);
+      await addItem(
+        data.name, 
+        data.quantity, 
+        data.boxId, 
+        data.description, 
+        data.tags, 
+        data.images, 
+        data.receipts,
+        data.purchaseDate,
+        data.warrantyExpire
+      );
       setIsAddingItem(false);
-      setNewItemName('');
-      setNewItemDescription('');
-      setSelectedNewItemTags([]);
-      setNewItemTagInput('');
-      setSelectedBoxId('');
+      setTempAddImages([]);
+      setTempAddReceipts([]);
     } catch (err) {
       console.error(err);
+      alert("Failed to save item.");
     }
   };
 
@@ -128,51 +128,40 @@ const ItemsPage = () => {
     setEditingItem({ ...editingItem, ...updates });
   };
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+  const handleUploadFiles = async (files: File[], type: 'item' | 'receipt', targetItemId: string) => {
+    if (files.length === 0) return;
     
-    // Check ref first, then fallback to sessionStorage
-    let context = uploadContextRef.current;
-    if (!context) {
-      const contextJson = sessionStorage.getItem('uploadContext');
-      if (contextJson) context = JSON.parse(contextJson);
-    }
-
-    if (files.length === 0 || !context) return;
-    
-    // Find the item even if editingItem was lost
-    const targetItemId = context.itemId;
     const currentItem = editingItem?.id === targetItemId ? editingItem : items.find(i => i.id === targetItemId);
     
-    if (!currentItem) {
+    if (targetItemId !== 'new-item' && !currentItem) {
       console.error("No item found for upload context");
       return;
     }
 
     setIsUploading(true);
-    const { type } = context;
-    uploadContextRef.current = null; 
-    sessionStorage.removeItem('uploadContext');
-
     try {
       const processedImages = await Promise.all(files.map(async file => {
-        // Reduced size/quality to prevent Firestore 1MB document limit errors
         const compressedBlob = await compressImage(file, 500, 0.3);
         return await blobToBase64(compressedBlob);
       }));
 
-      if (type === 'item') {
-        const currentImages = currentItem.images || [];
-        const newImages = [...currentImages, ...processedImages];
-        const updates = { images: newImages, imageUrl: newImages[0] || '' };
-        await updateItem(targetItemId, updates);
-        if (editingItem?.id === targetItemId) setEditingItem({ ...editingItem, ...updates });
-      } else {
-        const currentReceipts = currentItem.receipts || [];
-        const newReceipts = [...currentReceipts, ...processedImages];
-        const updates = { receipts: newReceipts, receiptUrl: newReceipts[0] || '' };
-        await updateItem(targetItemId, updates);
-        if (editingItem?.id === targetItemId) setEditingItem({ ...editingItem, ...updates });
+      if (targetItemId === 'new-item') {
+        if (type === 'item') setTempAddImages(prev => [...prev, ...processedImages]);
+        else setTempAddReceipts(prev => [...prev, ...processedImages]);
+      } else if (currentItem) {
+        if (type === 'item') {
+          const currentImages = currentItem.images || [];
+          const newImages = [...currentImages, ...processedImages];
+          const updates = { images: newImages, imageUrl: newImages[0] || '' };
+          await updateItem(targetItemId, updates);
+          if (editingItem?.id === targetItemId) setEditingItem({ ...editingItem, ...updates });
+        } else {
+          const currentReceipts = currentItem.receipts || [];
+          const newReceipts = [...currentReceipts, ...processedImages];
+          const updates = { receipts: newReceipts, receiptUrl: newReceipts[0] || '' };
+          await updateItem(targetItemId, updates);
+          if (editingItem?.id === targetItemId) setEditingItem({ ...editingItem, ...updates });
+        }
       }
     } catch (err: any) {
       console.error("Upload error:", err);
@@ -182,6 +171,29 @@ const ItemsPage = () => {
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
     }
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    let context = uploadContextRef.current;
+    if (!context) {
+      const contextJson = sessionStorage.getItem('uploadContext');
+      if (contextJson) context = JSON.parse(contextJson);
+    }
+
+    if (!context) return;
+    
+    const { type, itemId } = context;
+    uploadContextRef.current = null; 
+    sessionStorage.removeItem('uploadContext');
+    
+    await handleUploadFiles(files, type, itemId);
+  };
+
+  const handleDropFiles = async (type: 'item' | 'receipt', fileList: FileList) => {
+    const files = Array.from(fileList);
+    const targetItemId = editingItem ? editingItem.id : 'new-item';
+    await handleUploadFiles(files, type, targetItemId);
   };
 
   const toggleItemSelection = (id: string) => {
@@ -528,138 +540,31 @@ const ItemsPage = () => {
       </button>
 
       {isAddingItem && (
-        <div className="modal-overlay" onClick={() => setIsAddingItem(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Add New Item</h3>
-              <button className="close-btn" onClick={() => {
-                const hasChanges = newItemName || newItemDescription || selectedNewItemTags.length > 0 || newItemTagInput || selectedBoxId;
-                if (hasChanges) {
-                  setShowAddDiscardConfirm(true);
-                } else {
-                  setIsAddingItem(false);
-                }
-              }}>
-                <X size={24} />
-              </button>
-            </div>
-            
-            <form onSubmit={handleAddItem} className="create-form">
-              <div className="form-group">
-                <label>Item Name</label>
-                <input 
-                  autoFocus
-                  type="text" 
-                  placeholder="What are you adding?" 
-                  value={newItemName}
-                  onChange={(e) => setNewItemName(e.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Description (Optional)</label>
-                <textarea 
-                  placeholder="Additional details, serial numbers, etc." 
-                  value={newItemDescription}
-                  onChange={(e) => setNewItemDescription(e.target.value)}
-                  className="premium-textarea"
-                  rows={3}
-                />
-              </div>
-
-              <div className="form-group">
-                <label>Tags</label>
-                {selectedNewItemTags.length > 0 && (
-                  <div className="edit-tags-container" style={{ marginBottom: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {selectedNewItemTags.map(tag => {
-                      const colors = getTagColor(tag);
-                      return (
-                        <span 
-                          key={tag} 
-                          className="tag-pill" 
-                          style={{ 
-                            backgroundColor: colors.bg, 
-                            color: colors.text, 
-                            borderColor: colors.border,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '4px 10px',
-                            borderRadius: '8px',
-                            fontSize: '12px',
-                            border: '1px solid'
-                          }}
-                        >
-                          {tag} <X size={14} onClick={() => setSelectedNewItemTags(prev => prev.filter(t => t !== tag))} style={{ cursor: 'pointer', opacity: 0.7 }} />
-                        </span>
-                      );
-                    })}
-                  </div>
-                )}
-                <div className="tag-input-wrapper" style={{ marginBottom: '12px' }}>
-                  <input 
-                    type="text" 
-                    placeholder="tools, electronics..." 
-                    value={newItemTagInput}
-                    onChange={(e) => setNewItemTagInput(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleCommitNewItemTag())}
-                    style={{ border: 'none', backgroundColor: 'transparent' }}
-                  />
-                  <button type="button" className="tag-add-btn" onClick={handleCommitNewItemTag} style={{ padding: '8px' }}>
-                    <Plus size={20} />
-                  </button>
-                </div>
-                  <div className="tag-suggestions">
-                    {globalItemTags
-                      .filter(tag => !selectedNewItemTags.includes(tag))
-                      .map(tag => {
-                      const colors = getTagColor(tag);
-                      const isSelected = selectedNewItemTags.includes(tag);
-                      return (
-                        <button
-                          key={tag}
-                          type="button"
-                          className={`suggestion-chip ${isSelected ? 'active' : ''}`}
-                          onClick={() => {
-                            setSelectedNewItemTags(prev => 
-                              prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
-                            );
-                          }}
-                          style={{
-                            backgroundColor: isSelected ? colors.bg : 'transparent',
-                            color: isSelected ? colors.text : 'var(--text-secondary)',
-                            borderColor: isSelected ? colors.border : 'var(--border-color)'
-                          }}
-                        >
-                          {tag}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-              <div className="form-group">
-                <label>Select Box</label>
-                <select 
-                  value={selectedBoxId} 
-                  onChange={(e) => setSelectedBoxId(e.target.value)}
-                  required
-                  className="premium-select"
-                >
-                  <option value="" disabled>Choose a box...</option>
-                  {boxes.map(box => (
-                    <option key={box.id} value={box.id}>{box.name} ({box.room || 'No Room'})</option>
-                  ))}
-                </select>
-              </div>
-
-              <button type="submit" className="submit-btn" disabled={!newItemName || !selectedBoxId}>
-                Add to Box
-              </button>
-            </form>
-          </div>
-        </div>
+        <ItemAddModal 
+          boxes={boxes}
+          isUploading={isUploading}
+          onClose={() => {
+            setIsAddingItem(false);
+            setTempAddImages([]);
+            setTempAddReceipts([]);
+          }}
+          onSave={handleSaveNewItem}
+          onImageRequest={(type) => {
+            const context = { type, itemId: 'new-item' };
+            uploadContextRef.current = context;
+            sessionStorage.setItem('uploadContext', JSON.stringify(context));
+            setImageSourceModal({ type });
+          }}
+          onPreviewImage={(images, index) => setFullscreenImage({ images, index })}
+          onAddTag={addTag}
+          onDrop={handleDropFiles}
+          tempImages={tempAddImages}
+          tempReceipts={tempAddReceipts}
+          onRemoveTempImage={(type, index) => {
+            if (type === 'item') setTempAddImages(prev => prev.filter((_, i) => i !== index));
+            else setTempAddReceipts(prev => prev.filter((_, i) => i !== index));
+          }}
+        />
       )}
 
       {showAddDiscardConfirm && (
@@ -799,6 +704,7 @@ const ItemsPage = () => {
           }}
           onPreviewImage={(images, index) => setFullscreenImage({ images, index })}
           onAddTag={addTag}
+          onDrop={handleDropFiles}
         />
       )}
 
