@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Camera, Image, Plus, ArrowLeft, Star } from 'lucide-react';
+import { X, Camera, Image, Plus, ArrowLeft, Star, Tag, Edit2, Trash2 } from 'lucide-react';
 import { getWarrantyStatus } from '../utils/warranty';
 import { useItemTags } from '../hooks/useItemTags';
 import { getTagColor } from '../utils/tagColors';
@@ -764,6 +764,137 @@ export const FullscreenGallery: React.FC<{
           </div>
         ))}
       </div>
+    </div>
+  );
+};
+
+export const TagManagementModal: React.FC<{onClose: () => void}> = ({ onClose }) => {
+  const { tags: globalItemTags, addTag, removeTag, renameTag } = useItemTags();
+  const [editingTag, setEditingTag] = useState<string | null>(null);
+  const [editingTagValue, setEditingTagValue] = useState('');
+  const [newTagCategory, setNewTagCategory] = useState('');
+  const [isClosing, setIsClosing] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'destructive' | 'primary';
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(onClose, 300);
+  };
+
+  const handleAddNewTag = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (newTagCategory.trim()) {
+      addTag(newTagCategory.trim());
+      setNewTagCategory('');
+    }
+  };
+
+  return (
+    <div className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
+      <div className={`modal-content ${isClosing ? 'closing' : ''}`} onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ backgroundColor: 'rgba(62, 130, 247, 0.1)', padding: '8px', borderRadius: '10px' }}>
+              <Tag size={20} color="var(--primary-color)" />
+            </div>
+            <h3>Item Tags ({globalItemTags.length})</h3>
+          </div>
+          <button className="close-btn" onClick={handleClose}>
+            <X size={24} />
+          </button>
+        </div>
+
+        <div className="tag-manage-list">
+          {globalItemTags.map(tag => {
+            const colors = getTagColor(tag);
+            const isEditing = editingTag === tag;
+            
+            return (
+              <div key={tag} className={`tag-manage-chip ${isEditing ? 'is-editing' : ''}`}>
+                <div className="tag-dot" style={{ backgroundColor: colors.text }} />
+                {isEditing ? (
+                  <input 
+                    className="tag-edit-input"
+                    autoFocus
+                    value={editingTagValue}
+                    onChange={(e) => setEditingTagValue(e.target.value)}
+                    onBlur={() => {
+                      if (editingTagValue.trim() && editingTagValue !== tag) {
+                        renameTag(tag, editingTagValue);
+                      }
+                      setEditingTag(null);
+                    }}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') {
+                        if (editingTagValue.trim() && editingTagValue !== tag) {
+                          renameTag(tag, editingTagValue);
+                        }
+                        setEditingTag(null);
+                      }
+                    }}
+                  />
+                ) : (
+                  <span className="tag-name" style={{ color: colors.text }}>{tag}</span>
+                )}
+                <div className="tag-actions">
+                  <button 
+                    className="tag-action-btn"
+                    onClick={() => {
+                      setEditingTag(tag);
+                      setEditingTagValue(tag);
+                    }}
+                  >
+                    <Edit2 size={14} />
+                  </button>
+                  <button 
+                    className="tag-action-btn delete"
+                    onClick={() => {
+                      setConfirmModal({
+                        isOpen: true,
+                        title: 'Delete Tag',
+                        message: `Delete tag "${tag}" globally? This will remove it from ALL items and suggestions.`,
+                        type: 'destructive',
+                        onConfirm: () => removeTag(tag)
+                      });
+                    }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="tag-add-section">
+          <h4>Add New Category</h4>
+          <form onSubmit={handleAddNewTag} className="tag-input-wrapper">
+            <input 
+              type="text" 
+              placeholder="CATEGORY NAME..." 
+              value={newTagCategory}
+              onChange={(e) => setNewTagCategory(e.target.value)}
+            />
+            <button type="submit" className="tag-add-btn">
+              <Plus size={24} />
+            </button>
+          </form>
+        </div>
+      </div>
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type as any}
+        onConfirm={confirmModal.onConfirm}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

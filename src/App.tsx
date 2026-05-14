@@ -14,6 +14,7 @@ import { useBoxes } from './hooks/useBoxes';
 import { useItems } from './hooks/useItems';
 import ItemsPage from './pages/Items';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { TagManagementModal } from './components/ItemModals';
 
 class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
   constructor(props: {children: React.ReactNode}) {
@@ -73,6 +74,7 @@ const Home = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isManagingTags, setIsManagingTags] = useState(false);
 
   // Only show tags that exist on items
   const itemTags = Array.from(new Set(allItems.flatMap(item => item.tags || []))).sort();
@@ -121,9 +123,14 @@ const Home = () => {
       </div>
       <div className="filter-scroll-container">
         <div className="filter-scroll">
-          <div className="filter-settings-btn" style={{ opacity: 0.5 }}>
+          <button 
+            className="filter-settings-btn" 
+            onClick={() => setIsManagingTags(true)}
+            style={{ cursor: 'pointer' }}
+            title="Manage Tags"
+          >
             <Sliders size={18} />
-          </div>
+          </button>
           <button 
             className={`filter-pill ${selectedTags.length === 0 ? 'active' : ''}`}
             onClick={() => setSelectedTags([])}
@@ -240,6 +247,10 @@ const Home = () => {
       <Link to="/create" className="fab">
         <Plus size={24} />
       </Link>
+
+      {isManagingTags && (
+        <TagManagementModal onClose={() => setIsManagingTags(false)} />
+      )}
     </div>
   );
 };
