@@ -10,6 +10,7 @@ interface ConfirmationModalProps {
   confirmText?: string;
   cancelText?: string;
   type?: 'destructive' | 'primary' | 'warning';
+  confirmString?: string;
 }
 
 export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
@@ -20,12 +21,17 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   message,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
-  type = 'primary'
+  type = 'primary',
+  confirmString
 }) => {
   const [isClosing, setIsClosing] = useState(false);
+  const [inputValue, setInputValue] = useState('');
 
   useEffect(() => {
-    if (isOpen) setIsClosing(false);
+    if (isOpen) {
+      setIsClosing(false);
+      setInputValue('');
+    }
   }, [isOpen]);
 
   const handleClose = () => {
@@ -37,9 +43,12 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   };
 
   const handleConfirm = () => {
+    if (confirmString && inputValue !== confirmString) return;
     onConfirm();
     handleClose();
   };
+
+  const isConfirmDisabled = !!confirmString && inputValue !== confirmString;
 
   if (!isOpen && !isClosing) return null;
 
@@ -68,11 +77,53 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
             {message}
           </p>
         </div>
+
+        {confirmString && (
+          <div style={{ marginBottom: '24px' }}>
+            <div style={{ 
+              backgroundColor: 'rgba(255, 255, 255, 0.03)', 
+              padding: '12px', 
+              borderRadius: '12px', 
+              marginBottom: '16px',
+              border: '1px dashed var(--border-color)',
+              textAlign: 'center'
+            }}>
+              <p style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                To confirm deletion, please type:
+              </p>
+              <code style={{ fontSize: '15px', color: 'var(--text-primary)', fontWeight: '700', letterSpacing: '0.5px' }}>
+                {confirmString}
+              </code>
+            </div>
+            <input 
+              type="text" 
+              placeholder="Enter email here"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              style={{ 
+                width: '100%', 
+                padding: '14px', 
+                borderRadius: '12px', 
+                backgroundColor: 'var(--bg-color)', 
+                color: 'var(--text-primary)',
+                border: '2px solid var(--border-color)',
+                textAlign: 'center',
+                fontSize: '15px',
+                outline: 'none',
+                transition: 'border-color 0.2s'
+              }}
+              onFocus={(e) => e.target.style.borderColor = 'var(--primary-color)'}
+              onBlur={(e) => e.target.style.borderColor = 'var(--border-color)'}
+            />
+          </div>
+        )}
         
         <div className="action-sheet-options">
           <button 
             className={`option-btn ${type === 'destructive' ? 'destructive' : 'primary'}`} 
             onClick={handleConfirm}
+            disabled={isConfirmDisabled}
+            style={{ opacity: isConfirmDisabled ? 0.4 : 1, cursor: isConfirmDisabled ? 'not-allowed' : 'pointer' }}
           >
             {confirmText}
           </button>
