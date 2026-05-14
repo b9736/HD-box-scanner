@@ -22,7 +22,6 @@ const ItemsPage = () => {
   const [isManagingTags, setIsManagingTags] = useState(false);
   const [viewType, setViewType] = useState<'grid' | 'list'>(localStorage.getItem('itemsViewType') as 'grid' | 'list' || 'grid');
   const [gridColumns, setGridColumns] = useState<number>(Number(localStorage.getItem('itemsGridColumns')) || 2);
-  const [listColumns, setListColumns] = useState<number>(Number(localStorage.getItem('itemsListColumns')) || 1);
   const [gridRows, setGridRows] = useState<number>(Number(localStorage.getItem('itemsGridRows')) || 20);
   const [listRows, setListRows] = useState<number>(Number(localStorage.getItem('itemsListRows')) || 20);
   const [listScrollMode, setListScrollMode] = useState<'vertical' | 'horizontal'>(localStorage.getItem('listScrollMode') as 'vertical' | 'horizontal' || 'horizontal');
