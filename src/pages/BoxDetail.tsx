@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Printer, Edit3, X } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Printer, Edit3, X, Camera } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { getTagColor } from '../utils/tagColors';
 import { getWarrantyStatus } from '../utils/warranty';
@@ -356,32 +356,34 @@ const BoxDetail = () => {
             )}
           </div>
 
-          <div className="box-gallery-container no-print" style={{ margin: 0 }}>
-            <div className="box-gallery-scroll" style={{ padding: 0 }}>
-              {box.images && box.images.length > 0 ? (
-                box.images.map((img: string, idx: number) => (
-                  <div key={idx} className={`gallery-item ${box.imageUrl === img ? 'is-thumbnail' : ''}`}>
-                    <img src={img} alt="" className="box-photo-thumb" onClick={() => setFullscreenImage({images: box.images, index: idx})} />
-                    <div className="gallery-item-actions">
-                      <button 
-                        className="action-dot-btn delete" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const newImages = box.images.filter((_: any, i: number) => i !== idx);
-                          const isRemovingThumbnail = box.imageUrl === img;
-                          const newThumb = isRemovingThumbnail ? (newImages[0] || '') : box.imageUrl;
-                          updateBox(id!, { images: newImages, imageUrl: newThumb });
-                          setBox({ ...box, images: newImages, imageUrl: newThumb });
-                        }}
-                      >
-                        <X size={10} />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              ) : null}
-              <div className="add-photo-square" onClick={() => setImageSourceModal({type: 'box'})}>
-                {uploading ? "..." : <Plus size={20} />}
+          <div className="box-gallery-section" style={{marginBottom: '20px'}}>
+            <label style={{display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '13px'}}>Box Photos (Auto-saved)</label>
+            <div className="box-gallery-scroll">
+              {(box.images || []).map((img: string, idx: number) => (
+                <div key={idx} className="box-gallery-item">
+                  <img 
+                    src={img} 
+                    alt="" 
+                    onClick={() => setFullscreenImage({ images: box.images!, index: idx })} 
+                  />
+                  <button 
+                    type="button" 
+                    className="delete-photo-btn"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm("Permanently delete this photo? Images are auto-saved.")) {
+                        const newImages = (box.images || []).filter((_: any, i: number) => i !== idx);
+                        updateBox(id!, { images: newImages, imageUrl: newImages[0] || '' });
+                        setBox({ ...box, images: newImages, imageUrl: newImages[0] });
+                      }
+                    }}
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+              <div className="add-photo-box-large" onClick={() => setImageSourceModal({ type: 'box' })}>
+                {uploading ? '...' : <Camera size={24} />}
               </div>
             </div>
           </div>

@@ -168,14 +168,16 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
         
         <form onSubmit={handleSubmit} className="item-edit-form">
           <div className="gallery-section">
-            <label>Item Photos</label>
+            <label>Item Photos (Auto-saved)</label>
             <div className="modal-gallery-scroll">
               {(item.images || []).map((img: string, idx: number) => (
                 <div key={idx} className="modal-gallery-item">
                   <img src={img} alt="" onClick={() => onPreviewImage(item.images || [], idx)} />
                   <button type="button" className="delete-photo-btn" onClick={() => {
-                    const newImages = item.images.filter((_: any, i: number) => i !== idx);
-                    onUpdate({ ...item, images: newImages, imageUrl: newImages[0] || '' });
+                    if (window.confirm("Permanently delete this photo? Images are auto-saved.")) {
+                      const newImages = item.images.filter((_: any, i: number) => i !== idx);
+                      onUpdate({ ...item, images: newImages, imageUrl: newImages[0] || '' });
+                    }
                   }}>
                     <X size={12} />
                   </button>
@@ -194,8 +196,10 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
                 <div key={idx} className="modal-gallery-item">
                   <img src={img} alt="" onClick={() => onPreviewImage(item.receipts || [], idx)} />
                   <button type="button" className="delete-photo-btn" onClick={() => {
-                    const newReceipts = item.receipts.filter((_: any, i: number) => i !== idx);
-                    onUpdate({ ...item, receipts: newReceipts, receiptUrl: newReceipts[0] || '' });
+                    if (window.confirm("Permanently delete this photo?")) {
+                      const newReceipts = item.receipts.filter((_: any, i: number) => i !== idx);
+                      onUpdate({ ...item, receipts: newReceipts, receiptUrl: newReceipts[0] || '' });
+                    }
                   }}>
                     <X size={12} />
                   </button>
