@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, addDoc, serverTimestamp, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, serverTimestamp, where, getDocs, writeBatch, updateDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -59,9 +59,14 @@ export const useItemTags = () => {
   }, [user]);
 
   const addTag = async (name: string) => {
-    if (!user) return;
+    if (!user || !name.trim()) return;
 
     try {
+      // Check if it already exists as a global tag
+      const q = query(collection(db, "item_tags"), where("uid", "==", user.uid), where("name", "==", name.trim()));
+      const snap = await getDocs(q);
+      if (!snap.empty) return; // Already exists
+
       await addDoc(collection(db, "item_tags"), {
         name: name.trim(),
         uid: user.uid,
@@ -72,5 +77,33 @@ export const useItemTags = () => {
     }
   };
 
-  return { tags, loading, addTag };
+  const removeTag = async (name: string) => {
+    if (!user) return;
+    try {
+      const q = query(collection(db, "item_tags"), where("uid", "==", user.uid), where("name", "==", name));
+      const snap = await getDocs(q);
+      const batch = writeBatch(db);
+      snap.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+    } catch (err) {
+      console.error("Error removing global tag:", err);
+    }
+  };
+
+  const renameTag = async (oldName: string, newName: string) => {
+    if (!user || !newName.trim() || oldName === newName) return;
+    try {
+      const q = query(collection(db, "item_tags"), where("uid", "==", user.uid), where("name", "==", oldName));
+      const snap = await getDocs(q);
+      const batch = writeBatch(db);
+      snap.docs.forEach(doc => {
+        batch.update(doc.ref, { name: newName.trim() });
+      });
+      await batch.commit();
+    } catch (err) {
+      console.error("Error renaming global tag:", err);
+    }
+  };
+
+  return { tags, loading, addTag, removeTag, renameTag };
 };

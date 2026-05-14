@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Package, Plus, ChevronRight, X, LayoutGrid, List, Sliders, Tag, Edit2, Trash2, CheckSquare, Square, Tags, CheckCircle2 } from 'lucide-react';
+import { Search, Package, Plus, ChevronRight, X, LayoutGrid, List, Sliders, Tag, Edit2, Trash2, CheckSquare, Square, Tags, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useItems } from '../hooks/useItems';
 import { useBoxes } from '../hooks/useBoxes';
 import { useItemTags } from '../hooks/useItemTags';
@@ -7,11 +7,12 @@ import { getWarrantyStatus } from '../utils/warranty';
 import { getTagColor } from '../utils/tagColors';
 import { ItemEditModal, ImageSourceModal, FullscreenGallery } from '../components/ItemModals';
 import { compressImage, blobToBase64 } from '../utils/imageUtils';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 const ItemsPage = () => {
   const { items, loading: itemsLoading, addItem, updateItem, removeItem } = useItems();
   const { boxes } = useBoxes();
-  const { tags: globalItemTags, addTag } = useItemTags();
+  const { tags: globalItemTags, addTag, removeTag, renameTag } = useItemTags();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isAddingItem, setIsAddingItem] = useState(false);
@@ -22,6 +23,8 @@ const ItemsPage = () => {
   const [showAddDiscardConfirm, setShowAddDiscardConfirm] = useState(false);
   const [isManagingTags, setIsManagingTags] = useState(false);
   const [newTagCategory, setNewTagCategory] = useState('');
+  const [editingTag, setEditingTag] = useState<string | null>(null);
+  const [editingTagValue, setEditingTagValue] = useState('');
   const [selectedBoxId, setSelectedBoxId] = useState('');
   const [viewType, setViewType] = useState<'grid' | 'list'>(localStorage.getItem('itemsViewType') as 'grid' | 'list' || 'grid');
   
@@ -31,6 +34,13 @@ const ItemsPage = () => {
   const [fullscreenImage, setFullscreenImage] = useState<{images: string[], index: number} | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showExpiredInItems, setShowExpiredInItems] = useState(localStorage.getItem('showExpiredStatus') !== 'false');
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'destructive' | 'primary';
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -693,13 +703,59 @@ const ItemsPage = () => {
             <div className="tag-manage-list">
               {globalItemTags.map(tag => {
                 const colors = getTagColor(tag);
+                const isEditing = editingTag === tag;
+                
                 return (
-                  <div key={tag} className="tag-manage-chip">
+                  <div key={tag} className={`tag-manage-chip ${isEditing ? 'is-editing' : ''}`}>
                     <div className="tag-dot" style={{ backgroundColor: colors.text }} />
-                    <span className="tag-name" style={{ color: colors.text }}>{tag}</span>
+                    {isEditing ? (
+                      <input 
+                        className="tag-edit-input"
+                        autoFocus
+                        value={editingTagValue}
+                        onChange={(e) => setEditingTagValue(e.target.value)}
+                        onBlur={() => {
+                          if (editingTagValue.trim() && editingTagValue !== tag) {
+                            renameTag(tag, editingTagValue);
+                          }
+                          setEditingTag(null);
+                        }}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            if (editingTagValue.trim() && editingTagValue !== tag) {
+                              renameTag(tag, editingTagValue);
+                            }
+                            setEditingTag(null);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <span className="tag-name" style={{ color: colors.text }}>{tag}</span>
+                    )}
                     <div className="tag-actions">
-                      <button className="tag-action-btn"><Edit2 size={14} /></button>
-                      <button className="tag-action-btn delete"><Trash2 size={14} /></button>
+                      <button 
+                        className="tag-action-btn"
+                        onClick={() => {
+                          setEditingTag(tag);
+                          setEditingTagValue(tag);
+                        }}
+                      >
+                        <Edit2 size={14} />
+                      </button>
+                      <button 
+                        className="tag-action-btn delete"
+                        onClick={() => {
+                          setConfirmModal({
+                            isOpen: true,
+                            title: 'Delete Tag',
+                            message: `Delete tag "${tag}" from global suggestions? (Existing items will keep it)`,
+                            type: 'destructive',
+                            onConfirm: () => removeTag(tag)
+                          });
+                        }}
+                      >
+                        <Trash2 size={14} />
+                      </button>
                     </div>
                   </div>
                 );
@@ -918,6 +974,14 @@ const ItemsPage = () => {
         accept="image/*" 
         capture="environment" 
         onChange={handleImageSelect} 
+      />
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type as any}
+        onConfirm={confirmModal.onConfirm}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
       />
     </div>
   );

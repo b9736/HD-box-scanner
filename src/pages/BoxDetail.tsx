@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Printer, Edit3, X, Camera } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Printer, Edit3, X, Camera, AlertCircle } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { getTagColor } from '../utils/tagColors';
 import { getWarrantyStatus } from '../utils/warranty';
@@ -12,6 +12,7 @@ import { useGlobalTags } from '../hooks/useGlobalTags';
 import { QRCodeCanvas } from 'qrcode.react';
 import { compressImage, blobToBase64 } from '../utils/imageUtils';
 import { ItemEditModal, ImageSourceModal, FullscreenGallery } from '../components/ItemModals';
+import { ConfirmationModal } from '../components/ConfirmationModal';
 
 const BoxDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -41,6 +42,13 @@ const BoxDetail = () => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const cameraInputRef = React.useRef<HTMLInputElement>(null);
   const [showExpired, setShowExpired] = useState(localStorage.getItem('showExpiredStatus') !== 'false');
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'destructive' | 'primary';
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
 
   const handleShowExpiredChange = (checked: boolean) => {
     setShowExpired(checked);
@@ -371,11 +379,17 @@ const BoxDetail = () => {
                     className="delete-photo-btn"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (window.confirm("Permanently delete this photo? Images are auto-saved.")) {
-                        const newImages = (box.images || []).filter((_: any, i: number) => i !== idx);
-                        updateBox(id!, { images: newImages, imageUrl: newImages[0] || '' });
-                        setBox({ ...box, images: newImages, imageUrl: newImages[0] });
-                      }
+                      setConfirmModal({
+                        isOpen: true,
+                        title: 'Delete Photo',
+                        message: 'Permanently delete this photo? Images are auto-saved.',
+                        type: 'destructive',
+                        onConfirm: () => {
+                          const newImages = (box.images || []).filter((_: any, i: number) => i !== idx);
+                          updateBox(id!, { images: newImages, imageUrl: newImages[0] || '' });
+                          setBox({ ...box, images: newImages, imageUrl: newImages[0] });
+                        }
+                      });
                     }}
                   >
                     <X size={12} />
@@ -592,6 +606,14 @@ const BoxDetail = () => {
           </div>
         </div>
       )}
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type as any}
+        onConfirm={confirmModal.onConfirm}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };

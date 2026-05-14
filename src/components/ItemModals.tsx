@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Camera, Image, Plus, ArrowLeft, Star } from 'lucide-react';
+import { X, Camera, Image, Plus, ArrowLeft, Star, Trash2, AlertCircle } from 'lucide-react';
 import { getWarrantyStatus } from '../utils/warranty';
 import { useItemTags } from '../hooks/useItemTags';
 import { getTagColor } from '../utils/tagColors';
+import { ConfirmationModal } from './ConfirmationModal';
 
 export const ImageSourceModal: React.FC<{onSelect: (s: 'camera' | 'gallery') => void, onClose: () => void}> = ({ onSelect, onClose }) => {
   const [isClosing, setIsClosing] = useState(false);
@@ -65,6 +66,13 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'destructive' | 'primary';
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {} });
   const [imageUrl, setImageUrl] = useState(item.imageUrl || '');
   const [receiptUrl, setReceiptUrl] = useState(item.receiptUrl || '');
   const { tags: allAvailableTags } = useItemTags();
@@ -180,10 +188,16 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
                 <div key={idx} className="modal-gallery-item">
                   <img src={img} alt="" onClick={() => onPreviewImage(item.images || [], idx)} />
                   <button type="button" className="delete-photo-btn" onClick={() => {
-                    if (window.confirm("Permanently delete this photo? Images are auto-saved.")) {
-                      const newImages = item.images.filter((_: any, i: number) => i !== idx);
-                      onUpdate({ ...item, images: newImages, imageUrl: newImages[0] || '' });
-                    }
+                    setConfirmModal({
+                      isOpen: true,
+                      title: 'Delete Photo',
+                      message: 'Permanently delete this photo? Images are auto-saved.',
+                      type: 'destructive',
+                      onConfirm: () => {
+                        const newImages = item.images.filter((_: any, i: number) => i !== idx);
+                        onUpdate({ ...item, images: newImages, imageUrl: newImages[0] || '' });
+                      }
+                    });
                   }}>
                     <X size={12} />
                   </button>
@@ -202,10 +216,16 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
                 <div key={idx} className="modal-gallery-item">
                   <img src={img} alt="" onClick={() => onPreviewImage(item.receipts || [], idx)} />
                   <button type="button" className="delete-photo-btn" onClick={() => {
-                    if (window.confirm("Permanently delete this photo?")) {
-                      const newReceipts = item.receipts.filter((_: any, i: number) => i !== idx);
-                      onUpdate({ ...item, receipts: newReceipts, receiptUrl: newReceipts[0] || '' });
-                    }
+                    setConfirmModal({
+                      isOpen: true,
+                      title: 'Delete Receipt',
+                      message: 'Permanently delete this receipt/document?',
+                      type: 'destructive',
+                      onConfirm: () => {
+                        const newReceipts = item.receipts.filter((_: any, i: number) => i !== idx);
+                        onUpdate({ ...item, receipts: newReceipts, receiptUrl: newReceipts[0] || '' });
+                      }
+                    });
                   }}>
                     <X size={12} />
                   </button>
@@ -361,6 +381,15 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
           </div>
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type as any}
+        onConfirm={confirmModal.onConfirm}
+        onClose={() => setConfirmModal(prev => ({ ...prev, isOpen: false }))}
+      />
     </div>
   );
 };
