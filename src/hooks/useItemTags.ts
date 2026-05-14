@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, addDoc, serverTimestamp, where, getDocs, writeBatch } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, serverTimestamp, where, getDocs, writeBatch, arrayRemove } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -80,10 +80,22 @@ export const useItemTags = () => {
   const removeTag = async (name: string) => {
     if (!user) return;
     try {
+      const batch = writeBatch(db);
+      
+      // 1. Remove from global suggestions
       const q = query(collection(db, "item_tags"), where("uid", "==", user.uid), where("name", "==", name));
       const snap = await getDocs(q);
-      const batch = writeBatch(db);
       snap.docs.forEach(doc => batch.delete(doc.ref));
+      
+      // 2. Remove from all items that have this tag
+      const itemsQ = query(collection(db, "items"), where("uid", "==", user.uid), where("tags", "array-contains", name));
+      const itemsSnap = await getDocs(itemsQ);
+      itemsSnap.docs.forEach(itemDoc => {
+        batch.update(itemDoc.ref, {
+          tags: arrayRemove(name)
+        });
+      });
+      
       await batch.commit();
     } catch (err) {
       console.error("Error removing global tag:", err);
@@ -93,12 +105,24 @@ export const useItemTags = () => {
   const renameTag = async (oldName: string, newName: string) => {
     if (!user || !newName.trim() || oldName === newName) return;
     try {
+      const batch = writeBatch(db);
+      
+      // 1. Update global suggestions
       const q = query(collection(db, "item_tags"), where("uid", "==", user.uid), where("name", "==", oldName));
       const snap = await getDocs(q);
-      const batch = writeBatch(db);
       snap.docs.forEach(doc => {
         batch.update(doc.ref, { name: newName.trim() });
       });
+
+      // 2. Update all items that have this tag
+      const itemsQ = query(collection(db, "items"), where("uid", "==", user.uid), where("tags", "array-contains", oldName));
+      const itemsSnap = await getDocs(itemsQ);
+      itemsSnap.docs.forEach(itemDoc => {
+        const currentTags = itemDoc.data().tags || [];
+        const updatedTags = currentTags.map((t: string) => t === oldName ? newName.trim() : t);
+        batch.update(itemDoc.ref, { tags: updatedTags });
+      });
+      
       await batch.commit();
     } catch (err) {
       console.error("Error renaming global tag:", err);

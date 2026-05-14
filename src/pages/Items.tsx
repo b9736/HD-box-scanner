@@ -748,7 +748,7 @@ const ItemsPage = () => {
                           setConfirmModal({
                             isOpen: true,
                             title: 'Delete Tag',
-                            message: `Delete tag "${tag}" from global suggestions? (Existing items will keep it)`,
+                            message: `Delete tag "${tag}" globally? This will remove it from ALL items and suggestions.`,
                             type: 'destructive',
                             onConfirm: () => removeTag(tag)
                           });
