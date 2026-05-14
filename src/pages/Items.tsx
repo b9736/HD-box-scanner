@@ -23,7 +23,6 @@ const ItemsPage = () => {
   const [newTagCategory, setNewTagCategory] = useState('');
   const [editingTag, setEditingTag] = useState<string | null>(null);
   const [editingTagValue, setEditingTagValue] = useState('');
-  const [selectedBoxId, setSelectedBoxId] = useState('');
   const [viewType, setViewType] = useState<'grid' | 'list'>(localStorage.getItem('itemsViewType') as 'grid' | 'list' || 'grid');
   
   // Edit states
@@ -80,23 +79,15 @@ const ItemsPage = () => {
     }
   }, [items, editingItem]);
 
-  const handleCommitNewItemTag = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    if (!newItemTagInput.trim()) return;
-    
-    const newTags = newItemTagInput.split(',').map(t => t.trim()).filter(t => t !== '');
-    newTags.forEach(t => addTag(t)); // Make them permanent
-    setSelectedNewItemTags(prev => Array.from(new Set([...prev, ...newTags])));
-    setNewItemTagInput('');
-  };
+
 
   const handleCommitBatchTag = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!batchTags.trim()) return;
     
-    const newTags = batchTags.split(',').map(t => t.trim()).filter(t => t !== '');
-    newTags.forEach(t => addTag(t)); // Make them permanent
-    setSelectedBatchTags(prev => Array.from(new Set([...prev, ...newTags])));
+    const newTags = batchTags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
+    newTags.forEach((t: string) => addTag(t)); // Make them permanent
+    setSelectedBatchTags((prev: string[]) => Array.from(new Set([...prev, ...newTags])));
     setBatchTags('');
   };
 
@@ -577,9 +568,7 @@ const ItemsPage = () => {
               </p>
             </div>
             <div className="action-sheet-options">
-              <button className="option-btn primary" onClick={(e) => { e.preventDefault(); handleAddItem(e as any); setShowAddDiscardConfirm(false); }}>
-                Save & Close
-              </button>
+
               <button className="option-btn destructive" onClick={() => { setIsAddingItem(false); setShowAddDiscardConfirm(false); }}>
                 Discard Progress
               </button>
