@@ -14,7 +14,7 @@ import { useBoxes } from './hooks/useBoxes';
 import { useItems } from './hooks/useItems';
 import ItemsPage from './pages/Items';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { TagManagementModal } from './components/ItemModals';
+import { FullscreenGallery, TagManagementModal } from './components/ItemModals';
 
 class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasError: boolean}> {
   constructor(props: {children: React.ReactNode}) {
@@ -75,6 +75,7 @@ const Home = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isManagingTags, setIsManagingTags] = useState(false);
+  const [fullscreenImage, setFullscreenImage] = useState<{images: string[], index: number} | null>(null);
 
   // Only show tags that exist on items
   const itemTags = Array.from(new Set(allItems.flatMap(item => item.tags || []))).sort();
@@ -175,7 +176,17 @@ const Home = () => {
                 <div className="box-row-main">
                   <div className="box-row-icon">
                     {box.imageUrl ? (
-                      <img src={box.imageUrl} alt="" className="box-row-icon-img" />
+                      <img 
+                        src={box.imageUrl} 
+                        alt="" 
+                        className="box-row-icon-img" 
+                        onClick={(e) => {
+                          if (box.images && box.images.length > 0) {
+                            e.stopPropagation();
+                            setFullscreenImage({ images: box.images, index: 0 });
+                          }
+                        }}
+                      />
                     ) : (
                       "📦"
                     )}
@@ -250,6 +261,14 @@ const Home = () => {
 
       {isManagingTags && (
         <TagManagementModal onClose={() => setIsManagingTags(false)} />
+      )}
+
+      {fullscreenImage && (
+        <FullscreenGallery 
+          images={fullscreenImage.images} 
+          initialIndex={fullscreenImage.index} 
+          onClose={() => setFullscreenImage(null)} 
+        />
       )}
     </div>
   );

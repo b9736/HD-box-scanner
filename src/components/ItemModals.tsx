@@ -764,6 +764,20 @@ export const FullscreenGallery: React.FC<{
           </div>
         ))}
       </div>
+      {images.length > 1 && (
+        <div className="gallery-dots">
+          {images.map((_, idx) => (
+            <div 
+              key={idx} 
+              className={`gallery-dot ${idx === currentIndex ? 'active' : ''}`}
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate(idx - currentIndex);
+              }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

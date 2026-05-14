@@ -42,6 +42,7 @@ const BoxDetail = () => {
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const cameraInputRef = React.useRef<HTMLInputElement>(null);
   const [showExpired, setShowExpired] = useState(localStorage.getItem('showExpiredStatus') !== 'false');
+  const [isDragging, setIsDragging] = useState(false);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -163,21 +164,12 @@ const BoxDetail = () => {
     setIsAdding(false);
   };
 
-  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    
-    // Retrieve context from sessionStorage to handle reloads
-    const contextJson = sessionStorage.getItem('uploadContext');
-    if (files.length === 0 || !contextJson) return;
+  const handleUploadFiles = async (files: File[], type: 'box' | 'item' | 'receipt', itemId?: string) => {
+    if (files.length === 0) return;
 
     setUploading(true);
-    const context = JSON.parse(contextJson);
-    const { type, itemId } = context;
-    sessionStorage.removeItem('uploadContext'); 
-
     try {
       const processedImages = await Promise.all(files.map(async file => {
-        // Reduced size/quality to prevent Firestore 1MB document limit errors
         const compressedBlob = await compressImage(file, 500, 0.3);
         return await blobToBase64(compressedBlob);
       }));
@@ -188,7 +180,6 @@ const BoxDetail = () => {
         await updateBox(id!, { images: newImages, imageUrl: newImages[0] });
         setBox({ ...box, images: newImages, imageUrl: newImages[0] });
       } else {
-        // Item or receipt
         const isReceipt = type === 'receipt';
         const field = isReceipt ? 'receipts' : 'images';
         const urlField = isReceipt ? 'receiptUrl' : 'imageUrl';
@@ -212,6 +203,34 @@ const BoxDetail = () => {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
       if (cameraInputRef.current) cameraInputRef.current.value = '';
+    }
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    const contextJson = sessionStorage.getItem('uploadContext');
+    if (files.length === 0 || !contextJson) return;
+
+    const context = JSON.parse(contextJson);
+    sessionStorage.removeItem('uploadContext'); 
+    handleUploadFiles(files, context.type, context.itemId);
+  };
+
+  const onDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const onDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      handleUploadFiles(files, 'box');
     }
   };
 
@@ -366,12 +385,18 @@ const BoxDetail = () => {
 
           <div className="box-gallery-section" style={{marginBottom: '20px'}}>
             <label style={{display: 'block', marginBottom: '8px', color: 'var(--text-secondary)', fontSize: '13px'}}>Box Photos (Auto-saved)</label>
-            <div className="box-gallery-scroll">
+            <div 
+              className={`box-gallery-scroll ${isDragging ? 'is-dragging' : ''}`}
+              onDragOver={onDragOver}
+              onDragLeave={onDragLeave}
+              onDrop={onDrop}
+            >
               {(box.images || []).map((img: string, idx: number) => (
-                <div key={idx} className="box-gallery-item">
+                <div key={idx} className="gallery-item">
                   <img 
                     src={img} 
                     alt="" 
+                    className="box-photo-thumb"
                     onClick={() => setFullscreenImage({ images: box.images!, index: idx })} 
                   />
                   <button 
@@ -396,7 +421,7 @@ const BoxDetail = () => {
                   </button>
                 </div>
               ))}
-              <div className="add-photo-box-large" onClick={() => setImageSourceModal({ type: 'box' })}>
+              <div className="add-photo-square" onClick={() => setImageSourceModal({ type: 'box' })}>
                 {uploading ? '...' : <Camera size={24} />}
               </div>
             </div>
