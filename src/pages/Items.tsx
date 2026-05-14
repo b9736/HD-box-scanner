@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Search, Package, Plus, ChevronRight, X, LayoutGrid, List, Sliders, Tag, Edit2, Trash2, CheckSquare, Square, Tags, CheckCircle2 } from 'lucide-react';
 import { useItems } from '../hooks/useItems';
 import { useBoxes } from '../hooks/useBoxes';
@@ -60,6 +60,18 @@ const ItemsPage = () => {
     return matchesSearch && matchesTags;
   });
 
+  // Recovery effect for mobile camera reloads
+  useEffect(() => {
+    const contextJson = sessionStorage.getItem('uploadContext');
+    if (contextJson && items.length > 0) {
+      const context = JSON.parse(contextJson);
+      if (context.itemId && !editingItem) {
+        const item = items.find(i => i.id === context.itemId);
+        if (item) setEditingItem(item);
+      }
+    }
+  }, [items, editingItem]);
+
   const handleCommitNewItemTag = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!newItemTagInput.trim()) return;
@@ -106,32 +118,57 @@ const ItemsPage = () => {
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const context = uploadContextRef.current;
-    if (files.length === 0 || !context || !editingItem) return;
+    
+    // Check ref first, then fallback to sessionStorage
+    let context = uploadContextRef.current;
+    if (!context) {
+      const contextJson = sessionStorage.getItem('uploadContext');
+      if (contextJson) context = JSON.parse(contextJson);
+    }
+
+    if (files.length === 0 || !context) return;
+    
+    // Find the item even if editingItem was lost
+    const targetItemId = context.itemId;
+    const currentItem = editingItem?.id === targetItemId ? editingItem : items.find(i => i.id === targetItemId);
+    
+    if (!currentItem) {
+      console.error("No item found for upload context");
+      return;
+    }
 
     setIsUploading(true);
     const { type } = context;
     uploadContextRef.current = null; 
+    sessionStorage.removeItem('uploadContext');
 
     try {
       const processedImages = await Promise.all(files.map(async file => {
-        const compressedBlob = await compressImage(file, 600, 0.4);
+        // Reduced size/quality to prevent Firestore 1MB document limit errors
+        const compressedBlob = await compressImage(file, 500, 0.3);
         return await blobToBase64(compressedBlob);
       }));
 
       if (type === 'item') {
-        const currentImages = editingItem.images || [];
+        const currentImages = currentItem.images || [];
         const newImages = [...currentImages, ...processedImages];
-        await handleUpdateItem({ images: newImages, imageUrl: newImages[0] || '' });
+        const updates = { images: newImages, imageUrl: newImages[0] || '' };
+        await updateItem(targetItemId, updates);
+        if (editingItem?.id === targetItemId) setEditingItem({ ...editingItem, ...updates });
       } else {
-        const currentReceipts = editingItem.receipts || [];
+        const currentReceipts = currentItem.receipts || [];
         const newReceipts = [...currentReceipts, ...processedImages];
-        await handleUpdateItem({ receipts: newReceipts, receiptUrl: newReceipts[0] || '' });
+        const updates = { receipts: newReceipts, receiptUrl: newReceipts[0] || '' };
+        await updateItem(targetItemId, updates);
+        if (editingItem?.id === targetItemId) setEditingItem({ ...editingItem, ...updates });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Upload error:", err);
+      alert("Upload failed: " + (err.message || "Unknown error"));
     } finally {
       setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      if (cameraInputRef.current) cameraInputRef.current.value = '';
     }
   };
 
@@ -668,7 +705,9 @@ const ItemsPage = () => {
           onClose={() => setEditingItem(null)}
           onUpdate={handleUpdateItem}
           onImageRequest={(type) => {
-            uploadContextRef.current = { type, itemId: editingItem.id };
+            const context = { type, itemId: editingItem.id };
+            uploadContextRef.current = context;
+            sessionStorage.setItem('uploadContext', JSON.stringify(context));
             setImageSourceModal({ type });
           }}
           onPreviewImage={(images, index) => setFullscreenImage({ images, index })}

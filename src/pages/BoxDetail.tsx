@@ -169,7 +169,8 @@ const BoxDetail = () => {
 
     try {
       const processedImages = await Promise.all(files.map(async file => {
-        const compressedBlob = await compressImage(file, 600, 0.4);
+        // Reduced size/quality to prevent Firestore 1MB document limit errors
+        const compressedBlob = await compressImage(file, 500, 0.3);
         return await blobToBase64(compressedBlob);
       }));
 
