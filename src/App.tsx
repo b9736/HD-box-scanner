@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Scan, Search, Package, Settings, Plus, Sliders, Menu, Image, Folder } from 'lucide-react';
+import { Scan, Search, Package, Settings, Plus, Sliders, Menu, Image, Folder, CheckSquare, Square, Trash2, CheckCircle2, LayoutGrid, List, Minus, X } from 'lucide-react';
 import { getTagColor } from './utils/tagColors';
 import { getWarrantyStatus } from './utils/warranty';
 import './index.css';
@@ -76,6 +76,24 @@ const Home = () => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isManagingTags, setIsManagingTags] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<{images: string[], index: number} | null>(null);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [showBatchDeleteConfirm, setShowBatchDeleteConfirm] = useState(false);
+  const { deleteBox } = useBoxes();
+  const [viewType, setViewType] = useState<'grid' | 'list'>(localStorage.getItem('boxesViewType') as 'grid' | 'list' || 'list');
+  const [gridColumns, setGridColumns] = useState<number>(Number(localStorage.getItem('boxesGridColumns')) || 2);
+  const [gridRows, setGridRows] = useState<number>(Number(localStorage.getItem('boxesGridRows')) || 20);
+  const [listRows, setListRows] = useState<number>(Number(localStorage.getItem('boxesListRows')) || 20);
+  const [listScrollMode, setListScrollMode] = useState<'vertical' | 'horizontal'>(localStorage.getItem('boxesListScrollMode') as 'vertical' | 'horizontal' || 'vertical');
+  const [applyOnlyToDesktop, setApplyOnlyToDesktop] = useState<boolean>(localStorage.getItem('boxesApplyOnlyToDesktop') === 'true');
+  const [showDisplaySettings, setShowDisplaySettings] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth > 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Only show tags that exist on items
   const itemTags = Array.from(new Set(allItems.flatMap(item => item.tags || []))).sort();
@@ -101,8 +119,49 @@ const Home = () => {
 
   return (
     <div className="page-content">
-      <header className="page-header-minimal">
-        <h2 className="header-title">My Boxes</h2>
+      <header className="page-header-minimal" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <h2 className="header-title" style={{ margin: 0 }}>My Boxes</h2>
+          <div className="view-toggle-container">
+            <button 
+              className="view-toggle-btn" 
+              onClick={() => setShowDisplaySettings(true)}
+              title="Display Settings"
+            >
+              <Settings size={20} />
+            </button>
+            <div className="view-toggle-divider"></div>
+            <button 
+              className={`view-toggle-btn ${viewType === 'grid' ? 'active' : ''}`}
+              onClick={() => {
+                setViewType('grid');
+                localStorage.setItem('boxesViewType', 'grid');
+              }}
+            >
+              <LayoutGrid size={20} />
+            </button>
+            <button 
+              className={`view-toggle-btn ${viewType === 'list' ? 'active' : ''}`}
+              onClick={() => {
+                setViewType('list');
+                localStorage.setItem('boxesListScrollMode', 'vertical');
+                localStorage.setItem('boxesViewType', 'list');
+              }}
+            >
+              <List size={20} />
+            </button>
+          </div>
+        </div>
+        <button 
+          className={`action-btn ${isSelectionMode ? 'active' : ''}`}
+          onClick={() => {
+            setIsSelectionMode(!isSelectionMode);
+            if (isSelectionMode) setSelectedIds([]);
+          }}
+          title="Selection Mode"
+        >
+          <CheckSquare size={20} />
+        </button>
       </header>
 
       <div className="search-container">
@@ -164,84 +223,131 @@ const Home = () => {
         </div>
       </div>
 
-      <div className="box-list">
+      <div 
+        className={viewType === 'grid' ? 'items-grid' : 'items-list-view'}
+        style={{ 
+          gridTemplateColumns: viewType === 'grid' 
+            ? `repeat(${(!isDesktop && applyOnlyToDesktop) ? 2 : gridColumns}, 1fr)` 
+            : (listScrollMode === 'vertical' 
+                ? 'repeat(1, 1fr)' 
+                : 'none'),
+          gridTemplateRows: viewType === 'list' && listScrollMode === 'horizontal'
+            ? `repeat(${listRows}, auto)`
+            : 'none',
+          display: 'grid',
+          gridAutoFlow: viewType === 'list' && listScrollMode === 'horizontal' ? 'column' : 'row',
+          gap: '12px',
+          minWidth: viewType === 'list' && listScrollMode === 'horizontal' 
+            ? 'max-content'
+            : (listScrollMode === 'horizontal' && viewType === 'grid'
+                ? `${(!isDesktop && applyOnlyToDesktop ? 2 : gridColumns) * 160}px`
+                : '100%'),
+          paddingBottom: '140px',
+          overflowX: (viewType === 'list' && listScrollMode === 'horizontal') || (viewType === 'grid' && listScrollMode === 'horizontal') ? 'auto' : 'visible'
+        }}
+      >
         {boxesLoading ? (
           <p className="status-text">Loading boxes...</p>
         ) : filteredBoxes.length === 0 && searchQuery === '' ? (
           <p className="status-text">No boxes found. Add your first box below!</p>
         ) : (
           <>
-            {filteredBoxes.map((box) => (
-              <div key={box.id} className="box-item-row" onClick={() => navigate(`/box/${box.id}`)}>
-                <div className="box-row-main">
-                  <div className="box-row-icon">
-                    {box.imageUrl ? (
-                      <img 
-                        src={box.imageUrl} 
-                        alt="" 
-                        className="box-row-icon-img" 
-                        onClick={(e) => {
-                          if (box.images && box.images.length > 0) {
-                            e.stopPropagation();
-                            setFullscreenImage({ images: box.images, index: 0 });
-                          }
-                        }}
-                      />
-                    ) : (
-                      "📦"
-                    )}
-                  </div>
-                  <div className="box-row-content">
-                    <div className="box-row-title">
-                      {box.name}
-                      <span className="box-item-count">({allItems.filter(i => i.boxId === box.id).length})</span>
+            {filteredBoxes.slice(0, viewType === 'grid' 
+              ? ((!isDesktop && applyOnlyToDesktop ? 2 : gridColumns) * gridRows)
+              : (listScrollMode === 'horizontal' ? filteredBoxes.length : 999)
+            ).map((box) => {
+              const isSelected = selectedIds.includes(box.id);
+              return (
+                <div 
+                  key={box.id} 
+                  className={`box-item-row ${isSelected ? 'selected' : ''}`} 
+                  onClick={() => {
+                    if (isSelectionMode) {
+                      setSelectedIds(prev => 
+                        prev.includes(box.id) ? prev.filter(id => id !== box.id) : [...prev, box.id]
+                      );
+                    } else {
+                      navigate(`/box/${box.id}`);
+                    }
+                  }}
+                >
+                  {isSelectionMode && (
+                    <div className="selection-checkbox" style={{ marginRight: '12px' }}>
+                      {isSelected ? <CheckCircle2 size={24} color="var(--primary-color)" /> : <Square size={24} opacity={0.3} />}
                     </div>
-                    <div className="box-row-meta">Location: {box.room || 'No Room'}</div>
-                    <div className="box-row-preview">
-                      {allItems
-                        .filter(i => i.boxId === box.id)
-                        .map(i => `${i.name} ${i.quantity || 1}x`)
-                        .join(', ') || 'Empty'}
+                  )}
+                  <div className="box-row-main">
+                    <div className="box-row-icon">
+                      {box.imageUrl ? (
+                        <img 
+                          src={box.imageUrl} 
+                          alt="" 
+                          className="box-row-icon-img" 
+                          onClick={(e) => {
+                            if (box.images && box.images.length > 0) {
+                              e.stopPropagation();
+                              setFullscreenImage({ images: box.images, index: 0 });
+                            }
+                          }}
+                        />
+                      ) : (
+                        "📦"
+                      )}
                     </div>
-                    {/* Item-level Tags in this Box */}
-                    {(() => {
-                      const boxItemTags = Array.from(new Set(allItems.filter(i => i.boxId === box.id).flatMap(i => i.tags || [])));
-                      if (boxItemTags.length === 0) return null;
-                      return (
-                        <div className="box-row-item-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
-                          {boxItemTags.map(tag => {
+                    <div className="box-row-content">
+                      <div className="box-row-title">
+                        {box.name}
+                        <span className="box-item-count">({allItems.filter(i => i.boxId === box.id).length})</span>
+                      </div>
+                      <div className="box-row-meta">Location: {box.room || 'No Room'}</div>
+                      <div className="box-row-preview">
+                        {allItems.filter(i => i.boxId === box.id).slice(0, 3).map(i => i.name).join(', ') || 'Empty Box'}
+                      </div>
+                      
+                      {/* Item-level Tags in this Box */}
+                      {(() => {
+                        const boxItemTags = Array.from(new Set(allItems.filter(i => i.boxId === box.id).flatMap(i => i.tags || [])));
+                        if (boxItemTags.length === 0) return null;
+                        return (
+                          <div className="box-row-item-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                            {boxItemTags.map(tag => {
+                              const colors = getTagColor(tag);
+                              return (
+                                <span key={tag} style={{ 
+                                  fontSize: '10px', 
+                                  padding: '2px 8px', 
+                                  borderRadius: '4px', 
+                                  backgroundColor: colors.bg, 
+                                  color: colors.text,
+                                  border: `1px solid ${colors.border}`,
+                                  opacity: 0.9
+                                }}>
+                                  {tag}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Box's Own Tags */}
+                      {box.tags && box.tags.length > 0 && (
+                        <div className="box-row-tags" style={{ marginTop: '8px' }}>
+                          {box.tags.map(tag => {
                             const colors = getTagColor(tag);
                             return (
-                              <span key={tag} style={{ 
-                                fontSize: '10px', 
-                                padding: '2px 8px', 
-                                borderRadius: '4px', 
-                                backgroundColor: colors.bg, 
-                                color: colors.text,
-                                border: `1px solid ${colors.border}`,
-                                opacity: 0.9
-                              }}>
-                                {tag}
+                              <span key={tag} className="row-tag" style={{ backgroundColor: colors.bg, color: colors.text }}>
+                                #{tag}
                               </span>
                             );
                           })}
                         </div>
-                      );
-                    })()}
+                      )}
+                    </div>
                   </div>
                 </div>
-                <div className="box-row-tags">
-                  {box.tags?.map(tag => {
-                    const colors = getTagColor(tag);
-                    return (
-                      <span key={tag} className="row-tag" style={{ backgroundColor: colors.bg, color: colors.text }}>
-                        #{tag}
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
             {filteredItems.length > 0 && (
               <div style={{ marginTop: '24px' }}>
@@ -280,9 +386,201 @@ const Home = () => {
         )}
       </div>
 
+      {isSelectionMode && selectedIds.length > 0 && (
+        <div className="batch-actions-footer">
+          <div className="batch-actions-count">{selectedIds.length} Boxes selected</div>
+          <div className="batch-actions-btns">
+            <button className="batch-btn batch-delete" onClick={() => setShowBatchDeleteConfirm(true)}>
+              <Trash2 size={18} />
+              Delete
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showBatchDeleteConfirm && (
+        <div className="modal-overlay">
+          <div className="modal-content delete-confirm-modal">
+            <Trash2 size={48} color="#ef4444" style={{ marginBottom: '20px' }} />
+            <h3>Delete {selectedIds.length} Boxes?</h3>
+            <p>This will permanently delete the selected boxes and all items inside them. This action cannot be undone.</p>
+            <div className="modal-actions-vertical">
+              <button className="modal-btn-destructive" onClick={async () => {
+                for (const id of selectedIds) {
+                  await deleteBox(id);
+                }
+                setSelectedIds([]);
+                setIsSelectionMode(false);
+                setShowBatchDeleteConfirm(false);
+              }}>
+                Delete Everything
+              </button>
+              <button className="modal-btn-secondary" onClick={() => setShowBatchDeleteConfirm(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Link to="/create" className="fab">
         <Plus size={24} />
       </Link>
+
+      {showDisplaySettings && (
+        <div className="modal-overlay">
+          <div className="modal-content display-settings-modal">
+            <div className="modal-header">
+              <h3>Display Settings</h3>
+              <button className="close-btn" onClick={() => setShowDisplaySettings(false)}>
+                <X size={24} />
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span>Grid Columns</span>
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                  <button 
+                    className="stepper-btn" 
+                    onClick={() => {
+                      const val = Math.max(1, gridColumns - 1);
+                      setGridColumns(val);
+                      localStorage.setItem('boxesGridColumns', String(val));
+                    }}
+                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    <Minus size={20} />
+                  </button>
+                  <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{gridColumns}</span>
+                  <button 
+                    className="stepper-btn" 
+                    onClick={() => {
+                      const val = Math.min(6, gridColumns + 1);
+                      setGridColumns(val);
+                      localStorage.setItem('boxesGridColumns', String(val));
+                    }}
+                    style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span>Grid Rows (Max)</span>
+                </label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                  <button 
+                    className="stepper-btn" 
+                    onClick={() => {
+                      const val = Math.max(1, gridRows - 1);
+                      setGridRows(val);
+                      localStorage.setItem('boxesGridRows', String(val));
+                    }}
+                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    <Minus size={20} />
+                  </button>
+                  <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{gridRows}</span>
+                  <button 
+                    className="stepper-btn" 
+                    onClick={() => {
+                      const val = Math.min(100, gridRows + 1);
+                      setGridRows(val);
+                      localStorage.setItem('boxesGridRows', String(val));
+                    }}
+                    style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span>List Scroll Mode</span>
+                </label>
+                <div style={{ display: 'flex', background: 'var(--surface-hover)', padding: '4px', borderRadius: '12px', gap: '4px' }}>
+                  <button 
+                    className={`view-toggle-btn ${listScrollMode === 'vertical' ? 'active' : ''}`}
+                    onClick={() => {
+                      setListScrollMode('vertical');
+                      localStorage.setItem('boxesListScrollMode', 'vertical');
+                    }}
+                    style={{ flex: 1, padding: '10px' }}
+                  >
+                    Vertical
+                  </button>
+                  <button 
+                    className={`view-toggle-btn ${listScrollMode === 'horizontal' ? 'active' : ''}`}
+                    onClick={() => {
+                      setListScrollMode('horizontal');
+                      localStorage.setItem('boxesListScrollMode', 'horizontal');
+                    }}
+                    style={{ flex: 1, padding: '10px' }}
+                  >
+                    Horizontal
+                  </button>
+                </div>
+              </div>
+
+              {listScrollMode === 'horizontal' && (
+                <div className="form-group" style={{ marginBottom: '24px' }}>
+                  <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <span>List Rows</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => {
+                        const val = Math.max(1, listRows - 1);
+                        setListRows(val);
+                        localStorage.setItem('boxesListRows', String(val));
+                      }}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{listRows}</span>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => {
+                        const val = Math.min(10, listRows + 1);
+                        setListRows(val);
+                        localStorage.setItem('boxesListRows', String(val));
+                      }}
+                      style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div className="form-group" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => {
+                const val = !applyOnlyToDesktop;
+                setApplyOnlyToDesktop(val);
+                localStorage.setItem('boxesApplyOnlyToDesktop', String(val));
+              }}>
+                <div className={`checkbox-custom ${applyOnlyToDesktop ? 'checked' : ''}`}>
+                  {applyOnlyToDesktop && <CheckCircle2 size={16} color="white" />}
+                </div>
+                <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Apply only to Web (Desktop)</span>
+              </div>
+            </div>
+            
+            <div className="modal-actions">
+              <button className="modal-btn-primary" onClick={() => setShowDisplaySettings(false)}>
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {isManagingTags && (
         <TagManagementModal onClose={() => setIsManagingTags(false)} />
