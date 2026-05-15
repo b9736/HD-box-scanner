@@ -873,8 +873,10 @@ export const TagManagementModal: React.FC<{onClose: () => void}> = ({ onClose })
                       }
                       setEditingTag(null);
                     }}
-                    onKeyPress={(e) => {
+                    onKeyDown={(e) => {
                       if (e.key === 'Enter') {
+                        e.preventDefault();
+                        e.stopPropagation();
                         if (editingTagValue.trim() && editingTagValue !== tag) {
                           renameTag(tag, editingTagValue);
                         }

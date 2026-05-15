@@ -3011,3 +3011,26 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   transform: scale(1.05);
   filter: brightness(1.1);
 }
+.tag-edit-input {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 0;
+  margin: 0;
+  outline: none;
+  width: 120px;
+  text-transform: uppercase;
+}
+
+.tag-manage-chip.is-editing {
+  border-color: var(--primary-color);
+  background-color: var(--surface-hover);
+  box-shadow: 0 0 0 1px var(--primary-color);
+}
+
+.tag-manage-chip.is-editing .tag-dot {
+  opacity: 1;
+}

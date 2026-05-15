@@ -119,9 +119,9 @@ const Home = () => {
 
   return (
     <div className="page-content">
-      <header className="page-header-minimal" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <h2 className="header-title" style={{ margin: 0 }}>My Boxes</h2>
+      <header className="page-header-minimal">
+        <h2 className="header-title">My Boxes <span className="header-count">({boxes.length} Boxes)</span></h2>
+        <div className="header-right-actions">
           <div className="view-toggle-container">
             <button 
               className="view-toggle-btn" 
@@ -130,13 +130,13 @@ const Home = () => {
             >
               <Settings size={20} />
             </button>
-            <div className="view-toggle-divider"></div>
             <button 
               className={`view-toggle-btn ${viewType === 'grid' ? 'active' : ''}`}
               onClick={() => {
                 setViewType('grid');
                 localStorage.setItem('boxesViewType', 'grid');
               }}
+              title="Grid View"
             >
               <LayoutGrid size={20} />
             </button>
@@ -147,21 +147,22 @@ const Home = () => {
                 localStorage.setItem('boxesListScrollMode', 'vertical');
                 localStorage.setItem('boxesViewType', 'list');
               }}
+              title="List View"
             >
               <List size={20} />
             </button>
           </div>
+          <button 
+            className={`view-toggle-btn ${isSelectionMode ? 'active' : ''}`}
+            onClick={() => {
+              setIsSelectionMode(!isSelectionMode);
+              if (!isSelectionMode) setSelectedIds([]);
+            }}
+            title="Selection Mode"
+          >
+            <CheckSquare size={20} />
+          </button>
         </div>
-        <button 
-          className={`action-btn ${isSelectionMode ? 'active' : ''}`}
-          onClick={() => {
-            setIsSelectionMode(!isSelectionMode);
-            if (isSelectionMode) setSelectedIds([]);
-          }}
-          title="Selection Mode"
-        >
-          <CheckSquare size={20} />
-        </button>
       </header>
 
       <div className="search-container">
