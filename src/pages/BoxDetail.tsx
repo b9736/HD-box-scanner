@@ -31,7 +31,7 @@ const BoxDetail = () => {
   // Slide-up bottom sheet states
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
   const [isClosingAddSheet, setIsClosingAddSheet] = useState(false);
-  const [addSheetMode, setAddSheetMode] = useState<'choice' | 'create' | 'existing'>('choice');
+  const [addSheetMode, setAddSheetMode] = useState<'choice' | 'create' | 'existing'>('create');
   const [activeGroupNameForAdd, setActiveGroupNameForAdd] = useState('');
 
   // Quick Create Form states
@@ -343,7 +343,7 @@ const BoxDetail = () => {
       setIsAddSheetOpen(false);
       setIsClosingAddSheet(false);
       // Reset form states
-      setAddSheetMode('choice');
+      setAddSheetMode('create');
       setSheetItemName('');
       setSheetQty(1);
       setSheetGroupName('');
@@ -423,7 +423,7 @@ const BoxDetail = () => {
         setIsAddSheetOpen(false);
         setIsClosingAddSheet(false);
         // Reset sheet form fields
-        setAddSheetMode('choice');
+        setAddSheetMode('create');
         setSheetItemName('');
         setSheetQty(1);
         setSheetGroupName('');
@@ -878,7 +878,7 @@ const BoxDetail = () => {
                 onClick={() => {
                   setActiveGroupNameForAdd('');
                   setSheetGroupName('');
-                  setAddSheetMode('choice');
+                  setAddSheetMode('create');
                   setIsAddSheetOpen(true);
                 }} 
                 className="add-item-btn-small"
@@ -1069,7 +1069,7 @@ const BoxDetail = () => {
                           const gName = groupName === 'General' ? '' : groupName;
                           setActiveGroupNameForAdd(gName);
                           setSheetGroupName(gName);
-                          setAddSheetMode('choice');
+                          setAddSheetMode('create');
                           setIsAddSheetOpen(true);
                         }}
                         style={{
@@ -1535,8 +1535,11 @@ const BoxDetail = () => {
                     Advanced Details...
                   </button>
                   
-                  <button type="button" className="option-btn secondary" onClick={() => setAddSheetMode('choice')} style={{backgroundColor: 'transparent', color: 'var(--text-secondary)', padding: '8px'}}>
-                    Back
+                  <button type="button" className="option-btn secondary" onClick={() => setAddSheetMode('existing')} style={{width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}>
+                    <Search size={16} /> Search & Add Existing Item...
+                  </button>
+                  <button type="button" className="option-btn secondary" onClick={handleCloseAddSheet} style={{backgroundColor: 'transparent', color: 'var(--text-secondary)', padding: '8px', width: '100%'}}>
+                    Cancel
                   </button>
                 </div>
               </form>
@@ -1652,9 +1655,12 @@ const BoxDetail = () => {
                   </div>
                 )}
 
-                <div style={{marginTop: '16px', display: 'flex', justifyContent: 'center'}}>
-                  <button type="button" className="option-btn secondary" onClick={() => setAddSheetMode('choice')} style={{backgroundColor: 'transparent', color: 'var(--text-secondary)', padding: '8px'}}>
-                    Back
+                <div style={{marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px', width: '100%'}}>
+                  <button type="button" className="option-btn secondary" onClick={() => setAddSheetMode('create')} style={{width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}>
+                    <Plus size={16} /> Create a New Item instead...
+                  </button>
+                  <button type="button" className="option-btn secondary" onClick={handleCloseAddSheet} style={{backgroundColor: 'transparent', color: 'var(--text-secondary)', padding: '8px', width: '100%'}}>
+                    Cancel
                   </button>
                 </div>
               </div>
