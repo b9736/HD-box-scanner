@@ -3412,3 +3412,40 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
     opacity: 1;
   }
 }
+
+/* -------------------------------------------------------------
+   Native PWA Experience: Disable text selection / Touch-to-Search
+   on UI components, headers, buttons, cards, and icons.
+------------------------------------------------------------- */
+.app-header,
+.box-hero,
+.box-hero-info,
+.box-detail-title,
+.box-room-large,
+.box-room-small,
+.section-header-inline,
+.group-header,
+.group-badge,
+.group-chip,
+.nav-bar,
+.nav-item,
+.btn,
+.option-btn,
+.submit-btn,
+.add-item-btn-small,
+.group-add-btn,
+.bulk-action-bar,
+.bulk-action-btn,
+.sheet-handle,
+.action-sheet-header,
+.qrcode-container,
+.box-qr-card,
+.row-tag,
+.lucide,
+svg,
+img {
+  -webkit-user-select: none; /* Safari/Chrome */
+  -moz-user-select: none;    /* Firefox */
+  -ms-user-select: none;     /* IE10+ */
+  user-select: none;         /* Standard */
+}
