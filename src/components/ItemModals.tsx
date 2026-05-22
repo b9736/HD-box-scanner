@@ -5,6 +5,7 @@ import { useItemTags } from '../hooks/useItemTags';
 import { getTagColor } from '../utils/tagColors';
 import { ConfirmationModal } from './ConfirmationModal';
 import { QRCodeCanvas } from 'qrcode.react';
+import { useItems } from '../hooks/useItems';
 
 export const ImageSourceModal: React.FC<{onSelect: (s: 'camera' | 'gallery') => void, onClose: () => void}> = ({ onSelect, onClose }) => {
   const [isClosing, setIsClosing] = useState(false);
@@ -65,10 +66,44 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   const [purchaseDate, setPurchaseDate] = useState(item.purchaseDate || '');
   const [warrantyExpire, setWarrantyExpire] = useState(item.warrantyExpire || '');
   const [description, setDescription] = useState(item.description || '');
+  const [groupName, setGroupName] = useState(item.groupName || '');
   const [selectedTags, setSelectedTags] = useState<string[]>(item.tags || []);
   const [tagInput, setTagInput] = useState('');
   const [saving, setSaving] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [newGroupInput, setNewGroupInput] = useState('');
+
+  const { items: allItems } = useItems();
+  const globalGroups = React.useMemo(() => {
+    const groupsSet = new Set<string>();
+    allItems.forEach(item => {
+      if (item.groupName && item.groupName.trim() !== '') {
+        groupsSet.add(item.groupName.trim());
+      }
+    });
+    return Array.from(groupsSet).sort();
+  }, [allItems]);
+
+  const [localCreatedGroups, setLocalCreatedGroups] = useState<string[]>([]);
+
+  const handleAddNewGroup = (nameToAdd: string) => {
+    const trimmed = nameToAdd.trim();
+    if (!trimmed) return;
+    if (!localCreatedGroups.includes(trimmed)) {
+      setLocalCreatedGroups(prev => [...prev, trimmed]);
+    }
+    setGroupName(trimmed);
+    setNewGroupInput('');
+  };
+
+  const renderedGroups = React.useMemo(() => {
+    const unionSet = new Set<string>(globalGroups);
+    localCreatedGroups.forEach(g => unionSet.add(g));
+    if (groupName && groupName.trim() !== '') {
+      unionSet.add(groupName.trim());
+    }
+    return Array.from(unionSet).sort();
+  }, [globalGroups, localCreatedGroups, groupName]);
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -83,7 +118,8 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   useEffect(() => {
     if (item.imageUrl !== imageUrl) setImageUrl(item.imageUrl || '');
     if (item.receiptUrl !== receiptUrl) setReceiptUrl(item.receiptUrl || '');
-  }, [item.imageUrl, item.receiptUrl]);
+    if (item.groupName !== groupName) setGroupName(item.groupName || '');
+  }, [item.imageUrl, item.receiptUrl, item.groupName]);
 
   const warrantyStatus = getWarrantyStatus(warrantyExpire);
 
@@ -110,6 +146,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
     purchaseDate !== (item.purchaseDate || '') ||
     warrantyExpire !== (item.warrantyExpire || '') ||
     description !== (item.description || '') ||
+    (groupName || '') !== (item.groupName || '') ||
     JSON.stringify([...selectedTags].sort()) !== JSON.stringify([...(item.tags || [])].sort()) ||
     tagInput !== '';
 
@@ -165,7 +202,8 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
         tags: finalTags,
         imageUrl,
         receiptUrl,
-        images: newImages
+        images: newImages,
+        groupName: groupName.trim()
       });
       handleClose();
     } catch (err) {
@@ -310,6 +348,111 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
           <div className="form-group">
             <label>Item Name</label>
             <input type="text" value={name} onChange={e => setName(e.target.value)} required />
+          </div>
+
+          <div className="form-group">
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>Group</label>
+            
+            {/* Group Chips Container */}
+            <div className="group-chips-container" style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              marginBottom: '12px',
+              maxHeight: '120px',
+              overflowY: 'auto',
+              padding: '4px 0'
+            }}>
+              {renderedGroups.map(g => {
+                const isSelected = groupName === g;
+                return (
+                  <button
+                    key={g}
+                    type="button"
+                    className={`group-chip ${isSelected ? 'active' : ''}`}
+                    onClick={() => setGroupName(isSelected ? '' : g)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: '20px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      border: '1px solid',
+                      borderColor: isSelected ? 'var(--primary-color)' : 'rgba(255,255,255,0.08)',
+                      backgroundColor: isSelected ? 'var(--primary-color)' : 'rgba(255,255,255,0.04)',
+                      color: isSelected ? '#ffffff' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <span style={{
+                      width: '6px',
+                      height: '6px',
+                      borderRadius: '50%',
+                      backgroundColor: isSelected ? '#ffffff' : 'rgba(255,255,255,0.3)',
+                      display: 'inline-block'
+                    }} />
+                    {g}
+                  </button>
+                );
+              })}
+              {renderedGroups.length === 0 && (
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                  No groups created yet. Use the field below to add one.
+                </span>
+              )}
+            </div>
+
+            {/* Quick Add Group Field */}
+            <div className="group-add-wrapper" style={{
+              display: 'flex',
+              gap: '8px',
+              marginTop: '4px'
+            }}>
+              <input 
+                type="text" 
+                placeholder="Add new group (e.g. Shisha)..."
+                value={newGroupInput}
+                onChange={e => setNewGroupInput(e.target.value)}
+                onKeyPress={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleAddNewGroup(newGroupInput);
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  backgroundColor: 'var(--surface-hover)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '10px',
+                  padding: '8px 12px',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  outline: 'none'
+                }}
+              />
+              <button 
+                type="button" 
+                onClick={() => handleAddNewGroup(newGroupInput)}
+                style={{
+                  backgroundColor: 'var(--primary-color)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '10px',
+                  padding: '8px 16px',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <Plus size={16} /> Add
+              </button>
+            </div>
           </div>
 
           <div className="form-group">

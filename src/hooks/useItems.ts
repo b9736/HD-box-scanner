@@ -8,6 +8,7 @@ export interface Item {
   name: string;
   quantity: number;
   boxId: string;
+  groupName?: string;
   imageUrl?: string;
   receiptUrl?: string;
   images?: string[];
@@ -79,7 +80,8 @@ export const useItems = (boxId?: string) => {
     images: string[] = [],
     receipts: string[] = [],
     purchaseDate: string = '',
-    warrantyExpire: string = ''
+    warrantyExpire: string = '',
+    groupName: string = ''
   ) => {
     if (!user) throw new Error("User not authenticated");
 
@@ -90,6 +92,7 @@ export const useItems = (boxId?: string) => {
         description: description || '',
         tags,
         boxId: overrideBoxId || boxId || '',
+        groupName,
         images,
         receipts,
         imageUrl: images[0] || '',

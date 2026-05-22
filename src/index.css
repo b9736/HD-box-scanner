@@ -25,6 +25,28 @@
   padding: 0;
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-hover) var(--bg-color);
+}
+
+/* Custom Scrollbar Theme (Dark, Thin, Rounded) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--surface-hover);
+  border-radius: 10px;
+  border: 2px solid var(--bg-color);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-color);
 }
 
 body {
@@ -50,6 +72,23 @@ body {
     max-width: none;
     margin: 0;
     flex-direction: row; /* Sidebar layout on PC */
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .main-wrapper {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    height: 100%;
   }
 
   .page-content {
@@ -58,6 +97,8 @@ body {
     max-width: 1200px;
     margin: 0 auto;
     padding: var(--spacing-lg);
+    overflow-y: auto; /* Ensure it scrolls */
+    height: 100%;
   }
 
   .bottom-nav {
@@ -71,6 +112,7 @@ body {
     display: flex;
     flex-direction: column;
     padding: var(--spacing-md);
+    height: 100vh;
   }
 
   .side-nav {
@@ -3020,6 +3062,201 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
   font-weight: 700;
   padding: 0;
   margin: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 44px;
+}
+
+.action-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+
+.selection-action-btn {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: all 0.2s;
+}
+
+.selection-action-btn:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.selection-divider {
+  width: 1px;
+  height: 20px;
+  background-color: var(--border-color);
+  margin: 0 4px;
+}
+
+.selection-icon-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.selection-icon-btn:hover {
+  background-color: rgba(62, 130, 247, 0.1);
+  color: var(--primary-color);
+}
+
+.selection-icon-btn.destructive:hover {
+  background-color: rgba(255, 77, 79, 0.1);
+  color: #ff4d4f;
+}
+
+.item-list-row-premium.selected,
+.item-card-premium.selected {
+  border-color: var(--primary-color);
+  background-color: rgba(62, 130, 247, 0.03);
+}
+
+.selection-indicator {
+  margin-right: 12px;
+  display: flex;
+  align-items: center;
+  color: var(--text-secondary);
+}
+
+.selection-indicator-floating {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 10;
+  background-color: rgba(0,0,0,0.5);
+  backdrop-filter: blur(4px);
+  border-radius: 6px;
+  padding: 4px;
+  display: flex;
+  color: white;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.batch-modal-body {
+  padding: 20px;
+}
+
+.batch-modal-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.batch-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.batch-btn.primary {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.batch-btn.destructive {
+  background-color: #ff4d4f;
+  color: white;
+}
+
+.batch-btn.secondary {
+  background-color: var(--surface-hover);
+  color: var(--text-primary);
+}
+
+.modal-content.compact {
+  max-width: 400px;
+}
+
+.tag-add-section h4 {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+
+.tag-input-wrapper {
+  display: flex;
+  align-items: center;
+  background-color: var(--surface-color);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 4px;
+  transition: all 0.2s;
+  overflow: hidden;
+}
+
+.tag-input-wrapper:focus-within {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 2px rgba(62, 130, 247, 0.1);
+}
+
+.tag-input-wrapper input {
+  flex: 1;
+  background: none !important;
+  border: none !important;
+  padding: 10px 14px !important;
+  color: white !important;
+  font-weight: 600;
+  outline: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  font-size: 14px;
+}
+
+.tag-add-btn {
+  background-color: var(--primary-color);
+  border: none;
+  color: white;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.tag-add-btn:hover {
+  transform: scale(1.05);
+  filter: brightness(1.1);
+}
+.tag-edit-input {
+  background: transparent;
+  border: none;
+  color: inherit;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 0;
+  margin: 0;
   outline: none;
   width: 120px;
   text-transform: uppercase;
@@ -3033,4 +3270,128 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 .tag-manage-chip.is-editing .tag-dot {
   opacity: 1;
+}
+
+/* Bulk Operations Styles */
+.item-row.in-selection-mode {
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.item-row.in-selection-mode:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.item-row.in-selection-mode.selected {
+  background-color: rgba(62, 130, 247, 0.06) !important;
+  border-color: rgba(62, 130, 247, 0.2) !important;
+}
+
+.row-checkbox {
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+.row-checkbox.checked {
+  transform: scale(1.05);
+  box-shadow: 0 0 12px rgba(62, 130, 247, 0.4);
+}
+
+/* Floating Bulk Action Bar */
+.bulk-action-bar-container {
+  position: fixed;
+  bottom: 24px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 2500;
+  padding: 0 16px;
+  pointer-events: none; /* Let clicks pass through outside the bar */
+}
+
+.bulk-action-bar {
+  pointer-events: auto; /* Handle clicks inside the bar */
+  background: rgba(18, 18, 18, 0.85);
+  backdrop-filter: blur(20px) saturate(190%);
+  -webkit-backdrop-filter: blur(20px) saturate(190%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  padding: 12px 20px;
+  width: 100%;
+  max-width: 480px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+  animation: barSlideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.bulk-selected-count {
+  font-size: 14px;
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.bulk-selected-count strong {
+  color: var(--primary-color);
+  font-size: 16px;
+}
+
+.bulk-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bulk-action-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  color: var(--text-secondary);
+  padding: 8px 14px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  min-width: 68px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.bulk-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.bulk-action-btn:active {
+  transform: translateY(1px) scale(0.97);
+}
+
+.bulk-action-btn.destructive {
+  color: #ff453a;
+  background: rgba(255, 69, 58, 0.08);
+  border-color: rgba(255, 69, 58, 0.1);
+}
+
+.bulk-action-btn.destructive:hover {
+  background: rgba(255, 69, 58, 0.15);
+  color: #ff453a;
+}
+
+@keyframes barSlideUp {
+  from {
+    transform: translateY(100px) scale(0.9);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
 }
