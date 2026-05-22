@@ -99,6 +99,7 @@ body {
     padding: var(--spacing-lg);
     overflow-y: auto; /* Ensure it scrolls */
     height: 100%;
+    --page-padding: var(--spacing-lg);
   }
 
   .bottom-nav {
@@ -215,6 +216,7 @@ body {
   padding: var(--spacing-md);
   padding-bottom: 140px; /* Generous space for nav and FAB */
   overflow-y: auto;
+  --page-padding: var(--spacing-md);
 }
 
 /* Integrated Scanner */
@@ -742,10 +744,25 @@ body {
 
 /* Items Section */
 .section-header-inline {
+  position: sticky;
+  top: calc(-1 * var(--page-padding, var(--spacing-md)));
+  margin-left: calc(-1 * var(--page-padding, var(--spacing-md)));
+  margin-right: calc(-1 * var(--page-padding, var(--spacing-md)));
+  margin-top: 0;
+  margin-bottom: var(--spacing-md);
+  padding-left: var(--page-padding, var(--spacing-md));
+  padding-right: var(--page-padding, var(--spacing-md));
+  padding-top: 12px;
+  padding-bottom: 12px;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-color);
+  
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
 }
 
 .add-item-btn-small {
