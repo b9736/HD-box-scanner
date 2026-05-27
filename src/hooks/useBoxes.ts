@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, serverTimestamp, setDoc, deleteDoc, doc, where, getDocs } from 'firebase/firestore';
+import { collection, query, onSnapshot, serverTimestamp, setDoc, deleteDoc, doc, where, getDocs, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -147,5 +147,53 @@ export const useBoxes = () => {
     }
   };
 
-  return { boxes, trashBoxes, loading, createBox, updateBox, deleteBox, restoreBox, deleteBoxPermanently };
+  const migrateBoxToNumeric = async (oldId: string, updates: Partial<Box>) => {
+    if (!user) throw new Error("User not authenticated");
+
+    try {
+      // 1. Calculate the next sequential numeric ID
+      let nextId = "001";
+      if (boxes.length > 0) {
+        const numericIds = boxes
+          .map(b => parseInt(b.id, 10))
+          .filter(id => !isNaN(id));
+        if (numericIds.length > 0) {
+          const maxId = Math.max(...numericIds);
+          nextId = String(maxId + 1).padStart(3, '0');
+        }
+      }
+
+      // 2. Fetch the old box details
+      const oldDocRef = doc(db, "boxes", oldId);
+      const oldDocSnap = await getDoc(oldDocRef);
+      if (!oldDocSnap.exists()) throw new Error("Old box not found");
+      const oldData = oldDocSnap.data();
+
+      // 3. Write the new document with the numeric nextId
+      await setDoc(doc(db, "boxes", nextId), {
+        ...oldData,
+        ...updates,
+        inTrash: false,
+        hasQRCode: true,
+        updatedAt: serverTimestamp(),
+      });
+
+      // 4. Migrate all items belonging to the old box ID to the new nextId
+      const itemsQuery = query(collection(db, "items"), where("boxId", "==", oldId));
+      const itemsSnapshot = await getDocs(itemsQuery);
+      await Promise.all(itemsSnapshot.docs.map(itemDoc => 
+        setDoc(itemDoc.ref, { boxId: nextId }, { merge: true })
+      ));
+
+      // 5. Delete the old box document
+      await deleteDoc(oldDocRef);
+
+      return nextId;
+    } catch (err) {
+      console.error("Migration to numeric ID failed:", err);
+      throw err;
+    }
+  };
+
+  return { boxes, trashBoxes, loading, createBox, updateBox, deleteBox, restoreBox, deleteBoxPermanently, migrateBoxToNumeric };
 };

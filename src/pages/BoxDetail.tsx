@@ -19,7 +19,7 @@ const BoxDetail = () => {
   const navigate = useNavigate();
   const [box, setBox] = useState<any>(null);
   const { items, loading: itemsLoading, addItem, removeItem, updateItem } = useItems(id || '');
-  const { boxes, updateBox, deleteBox } = useBoxes();
+  const { boxes, updateBox, deleteBox, migrateBoxToNumeric } = useBoxes();
   const { items: allItems } = useItems(); // Global user items search
   
   const [isEditing, setIsEditing] = useState(false);
@@ -288,6 +288,26 @@ const BoxDetail = () => {
     let newImages = [...(box.images || [])];
     if (editImageUrl && newImages.includes(editImageUrl)) {
       newImages = [editImageUrl, ...newImages.filter(img => img !== editImageUrl)];
+    }
+
+    const isAlphanumeric = isNaN(Number(id));
+    if (isAlphanumeric && editHasQRCode) {
+      try {
+        const newNumericId = await migrateBoxToNumeric(id, {
+          name: editName,
+          room: editRoom,
+          hasQRCode: true,
+          imageUrl: editImageUrl,
+          images: newImages
+        });
+        setIsEditing(false);
+        navigate(`/box/${newNumericId}`);
+        return;
+      } catch (err) {
+        console.error("Failed to migrate box to numeric ID:", err);
+        alert("Migration failed. Please check your network.");
+        return;
+      }
     }
 
     await updateBox(id, { 
