@@ -301,7 +301,10 @@ const Home = () => {
                         {box.name}
                         <span className="box-item-count">({allItems.filter(i => i.boxId === box.id).length})</span>
                       </div>
-                      <div className="box-row-meta">Location: {box.room || 'No Room'}</div>
+                      <div className="box-row-meta">
+                        Location: {box.room || 'No Room'}
+                        {box.hasQRCode && ` • QR ID: ${box.id}`}
+                      </div>
                       <div className="box-row-preview">
                         {allItems.filter(i => i.boxId === box.id).slice(0, 3).map(i => i.name).join(', ') || 'Empty Box'}
                       </div>
