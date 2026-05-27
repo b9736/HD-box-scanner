@@ -68,14 +68,14 @@ export const useBoxes = () => {
     if (!user) throw new Error("User not authenticated");
 
     try {
-      let nextId = "001";
+      let nextId = "0";
       if (boxes.length > 0) {
         const numericIds = boxes
           .map(b => parseInt(b.id, 10))
           .filter(id => !isNaN(id));
         if (numericIds.length > 0) {
           const maxId = Math.max(...numericIds);
-          nextId = String(maxId + 1).padStart(3, '0');
+          nextId = String(maxId + 1);
         }
       }
 
@@ -152,14 +152,14 @@ export const useBoxes = () => {
 
     try {
       // 1. Calculate the next sequential numeric ID
-      let nextId = "001";
+      let nextId = "0";
       if (boxes.length > 0) {
         const numericIds = boxes
           .map(b => parseInt(b.id, 10))
           .filter(id => !isNaN(id));
         if (numericIds.length > 0) {
           const maxId = Math.max(...numericIds);
-          nextId = String(maxId + 1).padStart(3, '0');
+          nextId = String(maxId + 1);
         }
       }
 
