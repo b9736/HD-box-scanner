@@ -9,6 +9,7 @@ import CreateBox from './pages/CreateBox';
 import ScanPage from './pages/ScanPage';
 import BoxDetail from './pages/BoxDetail';
 import SettingsPage from './pages/Settings';
+import TrashPage from './pages/Trash';
 import Login from './pages/Login';
 import { useBoxes } from './hooks/useBoxes';
 import { useItems } from './hooks/useItems';
@@ -631,6 +632,8 @@ const AppContent = () => {
         <Link to="/gallery" className={`nav-item ${location.pathname === '/gallery' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Image size={20} /> <span>Gallery</span></Link>
         <Link to="/folders" className={`nav-item ${location.pathname === '/folders' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Folder size={20} /> <span>Folders</span></Link>
         <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Settings size={20} /> <span>Settings</span></Link>
+        <Link to="/trash" className={`nav-item ${location.pathname === '/trash' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Trash2 size={20} /> <span>Trash</span></Link>
+
       </nav>
     </>
   );
@@ -660,7 +663,9 @@ const AppContent = () => {
               <Route path="/scan" element={<ScanPage />} />
               <Route path="/box/:id" element={<BoxDetail />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/trash" element={<TrashPage />} />
               <Route path="/gallery" element={<div className="page-content"><h2>Gallery</h2><p>Coming soon...</p></div>} />
+
               <Route path="/folders" element={<div className="page-content"><h2>Folders</h2><p>Coming soon...</p></div>} />
             </Routes>
           </main>

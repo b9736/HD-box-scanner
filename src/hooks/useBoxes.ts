@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, query, onSnapshot, addDoc, serverTimestamp, setDoc, deleteDoc, doc, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, addDoc, serverTimestamp, setDoc, deleteDoc, doc, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -13,16 +13,20 @@ export interface Box {
   imageUrl?: string;
   uid: string;
   hasQRCode?: boolean;
+  inTrash?: boolean;
+  deletedAt?: any;
 }
 
 export const useBoxes = () => {
   const { user } = useAuth();
   const [boxes, setBoxes] = useState<Box[]>([]);
+  const [trashBoxes, setTrashBoxes] = useState<Box[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
       setBoxes([]);
+      setTrashBoxes([]);
       setLoading(false);
       return;
     }
@@ -46,7 +50,11 @@ export const useBoxes = () => {
         return dateB - dateA;
       });
 
-      setBoxes(boxData);
+      const activeBoxes = boxData.filter(b => !b.inTrash);
+      const deletedBoxes = boxData.filter(b => b.inTrash);
+
+      setBoxes(activeBoxes);
+      setTrashBoxes(deletedBoxes);
       setLoading(false);
     }, (error) => {
       console.error("Error fetching boxes:", error);
@@ -60,14 +68,28 @@ export const useBoxes = () => {
     if (!user) throw new Error("User not authenticated");
 
     try {
-      await addDoc(collection(db, "boxes"), {
+      let nextId = "001";
+      if (boxes.length > 0) {
+        const numericIds = boxes
+          .map(b => parseInt(b.id, 10))
+          .filter(id => !isNaN(id));
+        if (numericIds.length > 0) {
+          const maxId = Math.max(...numericIds);
+          nextId = String(maxId + 1).padStart(3, '0');
+        }
+      }
+
+      await setDoc(doc(db, "boxes", nextId), {
         name,
         room,
         tags,
         uid: user.uid,
         hasQRCode,
+        inTrash: false,
         createdAt: serverTimestamp(),
       });
+
+      return nextId;
     } catch (err) {
       console.error("Error creating box:", err);
       throw err;
@@ -88,12 +110,42 @@ export const useBoxes = () => {
 
   const deleteBox = async (id: string) => {
     try {
-      await deleteDoc(doc(db, "boxes", id));
+      await setDoc(doc(db, "boxes", id), {
+        inTrash: true,
+        deletedAt: serverTimestamp(),
+      }, { merge: true });
     } catch (err) {
-      console.error("Error deleting box:", err);
+      console.error("Error soft-deleting box:", err);
       throw err;
     }
   };
 
-  return { boxes, loading, createBox, updateBox, deleteBox };
+  const restoreBox = async (id: string) => {
+    try {
+      await setDoc(doc(db, "boxes", id), {
+        inTrash: false,
+        deletedAt: null,
+      }, { merge: true });
+    } catch (err) {
+      console.error("Error restoring box:", err);
+      throw err;
+    }
+  };
+
+  const deleteBoxPermanently = async (id: string) => {
+    try {
+      // Cascading deletion of items
+      const itemsQuery = query(collection(db, "items"), where("boxId", "==", id));
+      const itemsSnapshot = await getDocs(itemsQuery);
+      await Promise.all(itemsSnapshot.docs.map(itemDoc => deleteDoc(itemDoc.ref)));
+
+      // Delete box doc
+      await deleteDoc(doc(db, "boxes", id));
+    } catch (err) {
+      console.error("Error permanently deleting box:", err);
+      throw err;
+    }
+  };
+
+  return { boxes, trashBoxes, loading, createBox, updateBox, deleteBox, restoreBox, deleteBoxPermanently };
 };

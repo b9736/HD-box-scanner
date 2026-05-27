@@ -30,8 +30,8 @@ const CreateBox = () => {
 
     setSaving(true);
     try {
-      await createBox(name, room, tags, hasQRCode);
-      navigate('/');
+      const newId = await createBox(name, room, tags, hasQRCode);
+      navigate(`/box/${newId}`);
     } catch (err) {
       console.error(err);
       alert("Failed to create box. Check console.");

@@ -1375,6 +1375,9 @@ body {
   background-color: var(--surface-color);
   width: 100%;
   max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: 32px 32px 0 0;
   padding: 24px;
   padding-bottom: calc(24px + env(safe-area-inset-bottom));
@@ -1423,6 +1426,11 @@ body {
 
 .option-btn.destructive {
   background-color: var(--error-color);
+  color: white;
+}
+
+.option-btn.primary {
+  background-color: var(--primary-color);
   color: white;
 }
 

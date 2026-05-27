@@ -1091,8 +1091,9 @@ export const TagManagementModal: React.FC<{onClose: () => void}> = ({ onClose })
 export const QRCodePreviewModal: React.FC<{
   value: string;
   title: string;
+  qrId?: string;
   onClose: () => void;
-}> = ({ value, title, onClose }) => {
+}> = ({ value, title, qrId, onClose }) => {
   const [isClosing, setIsClosing] = useState(false);
 
   const handleClose = () => {
@@ -1115,7 +1116,7 @@ export const QRCodePreviewModal: React.FC<{
     <div className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
       <div className={`modal-content qr-preview-modal ${isClosing ? 'closing' : ''}`} onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center', padding: '32px' }}>
         <div className="modal-header" style={{ marginBottom: '24px', justifyContent: 'center', border: 'none' }}>
-          <h3 style={{ margin: 0 }}>QR Code: {title}</h3>
+          <h3 style={{ margin: 0 }}>Box Name: {title} {qrId && `(ID: ${qrId})`}</h3>
         </div>
         
         <div className="qr-modal-canvas" style={{ background: 'white', padding: '20px', borderRadius: '16px', display: 'inline-block', marginBottom: '24px', boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }}>

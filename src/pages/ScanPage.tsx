@@ -5,9 +5,12 @@ import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import Scanner from '../components/Scanner';
 import { useBoxes } from '../hooks/useBoxes';
+import { useAuth } from '../contexts/AuthContext';
+
 
 const ScanPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { boxes, loading } = useBoxes();
   const [scannedId, setScannedId] = useState<string | null>(null);
   const [isNewBox, setIsNewBox] = useState(false);
@@ -18,6 +21,9 @@ const ScanPage = () => {
   const isChecking = React.useRef(false);
   const nameInputRef = React.useRef<HTMLInputElement>(null);
   const [showPulse, setShowPulse] = useState(false);
+  const [foundBox, setFoundBox] = useState<{ id: string; name: string; room: string } | null>(null);
+  const [isClosingFoundBox, setIsClosingFoundBox] = useState(false);
+
 
   React.useEffect(() => {
     if (isNewBox && nameInputRef.current) {
@@ -42,8 +48,13 @@ const ScanPage = () => {
       const boxRef = doc(db, "boxes", cleanId);
       const boxSnap = await getDoc(boxRef);
 
-      if (boxSnap.exists()) {
-        navigate(`/box/${cleanId}`);
+      if (boxSnap.exists() && boxSnap.data().uid === user?.uid && !boxSnap.data().inTrash) {
+        const data = boxSnap.data();
+        setFoundBox({
+          id: cleanId,
+          name: data.name || 'Unnamed Box',
+          room: data.room || 'General'
+        });
       } else {
         setIsNewBox(true);
       }
@@ -58,11 +69,19 @@ const ScanPage = () => {
     if (!scannedId || !name) return;
 
     setSaving(true);
+    if (!user) {
+      alert("You must be logged in to create a box.");
+      setSaving(false);
+      return;
+    }
+
     try {
       await setDoc(doc(db, "boxes", scannedId), {
         name,
         room: room || 'General',
         tags: [],
+        uid: user.uid,
+        hasQRCode: true,
         createdAt: serverTimestamp(),
       });
       navigate(`/box/${scannedId}`);
@@ -188,6 +207,70 @@ const ScanPage = () => {
                 Cancel
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {foundBox && (
+        <div className={`action-sheet-overlay ${isClosingFoundBox ? 'fade-out' : ''}`} style={{ zIndex: 9999 }}>
+          <div className={`action-sheet ${isClosingFoundBox ? 'slide-down' : ''}`} style={{ paddingBottom: '32px' }}>
+            <div className="sheet-handle" />
+            <div className="action-sheet-header" style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{ fontSize: '36px', marginBottom: '8px' }}>📦</div>
+              <h3>Box Found!</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '4px 0 0' }}>
+                This QR code matches an existing box.
+              </p>
+            </div>
+
+            <div style={{ 
+              backgroundColor: 'rgba(255,255,255,0.03)', 
+              padding: '16px', 
+              borderRadius: '16px', 
+              marginBottom: '24px',
+              border: '1px solid rgba(255,255,255,0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              fontSize: '15px',
+              textAlign: 'left'
+            }}>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Box Name:</span> <span style={{ color: 'white', fontWeight: 700, marginLeft: '4px' }}>{foundBox.name}</span>
+              </div>
+              
+              <div>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Location:</span> <span style={{ color: 'white', fontWeight: 600, marginLeft: '4px' }}>{foundBox.room}</span>
+              </div>
+
+              <div>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>QR ID:</span> <span style={{ color: 'white', fontWeight: 600, marginLeft: '4px' }}>{foundBox.id}</span>
+              </div>
+            </div>
+
+            <div className="action-sheet-options">
+              <button 
+                type="button"
+                className="option-btn primary" 
+                onClick={() => navigate(`/box/${foundBox.id}`)}
+              >
+                Open Box Detail
+              </button>
+              <button 
+                type="button"
+                className="option-btn" 
+                onClick={() => {
+                  setIsClosingFoundBox(true);
+                  setTimeout(() => {
+                    setFoundBox(null);
+                    setIsClosingFoundBox(false);
+                    isChecking.current = false;
+                  }, 300);
+                }}
+              >
+                Scan Another Code
+              </button>
+            </div>
           </div>
         </div>
       )}

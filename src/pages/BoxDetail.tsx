@@ -8,6 +8,7 @@ import { db } from '../firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { useItems, Item } from '../hooks/useItems';
 import { useBoxes } from '../hooks/useBoxes';
+import { useItemTags } from '../hooks/useItemTags';
 import { QRCodeCanvas } from 'qrcode.react';
 import { compressImage, blobToBase64 } from '../utils/imageUtils';
 import { ItemEditModal, ImageSourceModal, FullscreenGallery, QRCodePreviewModal } from '../components/ItemModals';
@@ -40,6 +41,11 @@ const BoxDetail = () => {
   const [sheetGroupName, setSheetGroupName] = useState('');
   const [sheetNewGroupInput, setSheetNewGroupInput] = useState('');
 
+  // Quick Create Tags states
+  const [sheetSelectedTags, setSheetSelectedTags] = useState<string[]>([]);
+  const [sheetTagInput, setSheetTagInput] = useState('');
+  const { tags: allAvailableTags, addTag: addGlobalTag } = useItemTags();
+
   // Search existing states
   const [sheetSearchQuery, setSheetSearchQuery] = useState('');
   const [selectedExistingItem, setSelectedExistingItem] = useState<any | null>(null);
@@ -64,13 +70,13 @@ const BoxDetail = () => {
 
   const globalGroups = React.useMemo(() => {
     const groupsSet = new Set<string>();
-    allItems.forEach(item => {
+    items.forEach(item => {
       if (item.groupName && item.groupName.trim() !== '') {
         groupsSet.add(item.groupName.trim());
       }
     });
     return Array.from(groupsSet).sort();
-  }, [allItems]);
+  }, [items]);
 
   const [sheetLocalCreatedGroups, setSheetLocalCreatedGroups] = useState<string[]>([]);
 
@@ -82,6 +88,22 @@ const BoxDetail = () => {
     }
     setSheetGroupName(trimmed);
     setSheetNewGroupInput('');
+  };
+
+  const handleSheetTagToggle = (tag: string) => {
+    setSheetSelectedTags(prev => 
+      prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
+    );
+  };
+
+  const handleAddSheetNewTag = (nameToAdd: string) => {
+    const trimmed = nameToAdd.trim();
+    if (!trimmed) return;
+    if (!sheetSelectedTags.includes(trimmed)) {
+      setSheetSelectedTags(prev => [...prev, trimmed]);
+    }
+    addGlobalTag(trimmed);
+    setSheetTagInput('');
   };
 
   const renderedGroups = React.useMemo(() => {
@@ -352,6 +374,8 @@ const BoxDetail = () => {
       setSheetSearchQuery('');
       setSelectedExistingItem(null);
       setActiveGroupNameForAdd('');
+      setSheetSelectedTags([]);
+      setSheetTagInput('');
     }, 300);
   };
 
@@ -365,7 +389,7 @@ const BoxDetail = () => {
         sheetQty,
         id,
         '', // description
-        [], // tags
+        sheetSelectedTags, // tags
         [], // images
         [], // receipts
         '', // purchaseDate
@@ -391,7 +415,7 @@ const BoxDetail = () => {
         sheetQty,
         id,
         '',
-        [],
+        sheetSelectedTags,
         [],
         [],
         '',
@@ -407,7 +431,7 @@ const BoxDetail = () => {
         boxId: id || '',
         groupName: sheetGroupName.trim(),
         description: '',
-        tags: [],
+        tags: sheetSelectedTags,
         images: [],
         receipts: [],
         purchaseDate: '',
@@ -432,6 +456,8 @@ const BoxDetail = () => {
         setSheetSearchQuery('');
         setSelectedExistingItem(null);
         setActiveGroupNameForAdd('');
+        setSheetSelectedTags([]);
+        setSheetTagInput('');
       }, 300);
     } catch (err) {
       console.error("Error creating item for advanced edit:", err);
@@ -699,7 +725,21 @@ const BoxDetail = () => {
           <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div className="box-hero-info" style={{ padding: 0 }}>
               <h1 className="box-detail-title">Box: {box.name}</h1>
-              <div className="box-room-large">{box.room || 'No Room'}</div>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '2px', marginBottom: '4px' }}>
+                <div className="box-room-large">{box.room || 'No Room'}</div>
+                {box.hasQRCode && (
+                  <span style={{ 
+                    fontSize: '12px', 
+                    color: 'var(--text-secondary)', 
+                    backgroundColor: 'rgba(255, 255, 255, 0.08)', 
+                    padding: '2px 8px', 
+                    borderRadius: '6px',
+                    fontWeight: 500
+                  }}>
+                    QR ID: {box.id}
+                  </span>
+                )}
+              </div>
               <div className="box-row-tags" style={{marginTop: '4px'}}>
                 {box.tags?.map((tag: string) => {
                   const colors = getTagColor(tag);
@@ -722,7 +762,7 @@ const BoxDetail = () => {
             </div>
             {box.hasQRCode && (
               <div className="box-qr-card" style={{ padding: 0, marginTop: 0, cursor: 'pointer' }} onClick={() => setShowQRModal(true)}>
-                <QRCodeCanvas value={box.name} size={48} bgColor="#FFFFFF" fgColor="#000000" level="L" includeMargin={false} />
+                <QRCodeCanvas value={box.id} size={48} bgColor="#FFFFFF" fgColor="#000000" level="L" includeMargin={false} />
               </div>
             )}
           </div>
@@ -1309,8 +1349,9 @@ const BoxDetail = () => {
       )}
       {showQRModal && (
         <QRCodePreviewModal 
-          value={box.name} 
+          value={box.id} 
           title={box.name} 
+          qrId={box.id}
           onClose={() => setShowQRModal(false)} 
         />
       )}
@@ -1513,6 +1554,141 @@ const BoxDetail = () => {
                     >
                       <Plus size={16} /> Add
                     </button>
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginTop: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>Tags</label>
+                  
+                  {/* Selected Tags list */}
+                  {sheetSelectedTags.length > 0 && (
+                    <div className="sheet-selected-tags" style={{ 
+                      display: 'flex', 
+                      flexWrap: 'wrap', 
+                      gap: '8px', 
+                      marginBottom: '12px' 
+                    }}>
+                      {sheetSelectedTags.map(tag => {
+                        const colors = getTagColor(tag);
+                        return (
+                          <span 
+                            key={tag} 
+                            style={{ 
+                              backgroundColor: colors.bg, 
+                              color: colors.text, 
+                              borderColor: colors.border,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              padding: '4px 10px',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              border: '1px solid',
+                              fontWeight: 600
+                            }}
+                          >
+                            {tag} 
+                            <X 
+                              size={14} 
+                              onClick={() => handleSheetTagToggle(tag)} 
+                              style={{ cursor: 'pointer', opacity: 0.7 }} 
+                            />
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Quick Add Tag Field */}
+                  <div className="tag-add-wrapper" style={{
+                    display: 'flex',
+                    gap: '8px',
+                    marginBottom: '12px'
+                  }}>
+                    <input 
+                      type="text" 
+                      placeholder="Add tag (e.g. tools)..."
+                      value={sheetTagInput}
+                      onChange={e => setSheetTagInput(e.target.value)}
+                      onKeyPress={e => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddSheetNewTag(sheetTagInput);
+                        }
+                      }}
+                      style={{
+                        flex: 1,
+                        backgroundColor: 'var(--surface-hover)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '10px',
+                        padding: '8px 12px',
+                        color: 'var(--text-primary)',
+                        fontSize: '14px',
+                        outline: 'none'
+                      }}
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => handleAddSheetNewTag(sheetTagInput)}
+                      style={{
+                        backgroundColor: 'var(--primary-color)',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '10px',
+                        padding: '8px 16px',
+                        fontSize: '14px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px'
+                      }}
+                    >
+                      <Plus size={16} /> Add
+                    </button>
+                  </div>
+
+                  {/* Tag Suggestions Container */}
+                  <div className="tag-suggestions" style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                    maxHeight: '90px',
+                    overflowY: 'auto',
+                    padding: '2px 0'
+                  }}>
+                    {allAvailableTags
+                      .filter(tag => !sheetSelectedTags.includes(tag))
+                      .map(tag => {
+                        const colors = getTagColor(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => handleSheetTagToggle(tag)}
+                            style={{
+                              padding: '5px 10px',
+                              borderRadius: '8px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              border: '1px solid rgba(255,255,255,0.08)',
+                              backgroundColor: 'rgba(255,255,255,0.04)',
+                              color: colors.text,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              display: 'flex',
+                              alignItems: 'center'
+                            }}
+                          >
+                            {tag}
+                          </button>
+                        );
+                      })}
+                    {allAvailableTags.length === 0 && (
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                        No tags created yet.
+                      </span>
+                    )}
                   </div>
                 </div>
 
