@@ -290,8 +290,8 @@ const BoxDetail = () => {
       newImages = [editImageUrl, ...newImages.filter(img => img !== editImageUrl)];
     }
 
-    const isAlphanumeric = isNaN(Number(id));
-    if (isAlphanumeric && editHasQRCode) {
+    const needsNumericMigration = isNaN(Number(id)) || id !== String(Number(id));
+    if (needsNumericMigration && editHasQRCode) {
       try {
         const newNumericId = await migrateBoxToNumeric(id, {
           name: editName,
