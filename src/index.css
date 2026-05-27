@@ -1121,6 +1121,15 @@ body {
 
 /* Print Optimization */
 @media print {
+  :root {
+    --bg-color: #ffffff !important;
+    --surface-color: #ffffff !important;
+    --surface-hover: #f2f2f7 !important;
+    --text-primary: #000000 !important;
+    --text-secondary: #555555 !important;
+    --border-color: #cccccc !important;
+  }
+
   body {
     background-color: white !important;
     color: black !important;
@@ -1130,11 +1139,36 @@ body {
     display: none !important;
   }
 
+  .app-container {
+    display: block !important;
+    max-width: none !important;
+    margin: 0 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .main-wrapper {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
   .page-content {
     padding: 0 !important;
     margin: 0 !important;
     width: 100% !important;
     max-width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  /* Force all collapsed items to expand in printed sheets */
+  .group-items-list {
+    display: block !important;
+  }
+
+  .group-chevron {
+    display: none !important;
   }
 
   .print-label {
@@ -1172,6 +1206,7 @@ body {
     font-size: 14px !important;
   }
 }
+
 .status-text {
   color: var(--text-secondary);
   text-align: center;

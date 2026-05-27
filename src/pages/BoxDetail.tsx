@@ -833,13 +833,13 @@ const BoxDetail = () => {
         </div>
       )}
 
-      <div className="items-section no-print">
+      <div className="items-section">
         <div className="section-header-inline" style={{ flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
             <div className="section-header" style={{ whiteSpace: 'nowrap' }}>Items ({items.length})</div>
             
             {/* Tag Filter Bar */}
-            <div className="header-tag-filter" style={{ 
+            <div className="header-tag-filter no-print" style={{ 
               display: 'flex', 
               gap: '6px', 
               flexWrap: 'wrap',
@@ -892,7 +892,7 @@ const BoxDetail = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '8px' }} className="no-print">
             <button
               onClick={toggleSelectionMode}
               className={`select-items-btn ${isSelectionMode ? 'active' : ''}`}
@@ -1054,7 +1054,7 @@ const BoxDetail = () => {
                   </div>
                 </div>
                 {!isSelectionMode && (
-                  <div className="item-row-actions">
+                  <div className="item-row-actions no-print">
                     <button onClick={(e) => { e.stopPropagation(); removeItem(item.id); }} className="delete-item-btn">
                       <Trash2 size={16} />
                     </button>
@@ -1123,7 +1123,7 @@ const BoxDetail = () => {
                     
                     {!isSelectionMode && (
                       <button 
-                        className="group-add-btn" 
+                        className="group-add-btn no-print" 
                         onClick={(e) => {
                           e.stopPropagation();
                           const gName = groupName === 'General' ? '' : groupName;
@@ -1151,121 +1151,120 @@ const BoxDetail = () => {
                     )}
                   </div>
 
-                  {!isCollapsed && (
-                    <div className="group-items-list" style={{
-                      padding: '8px'
-                    }}>
-                      {groupItems.map(item => (
-                        <div 
-                          key={item.id} 
-                          className={`item-row ${isSelectionMode ? 'in-selection-mode' : ''} ${isSelectionMode && selectedItemIds.includes(item.id) ? 'selected' : ''}`} 
-                          onClick={() => {
-                            if (isSelectionMode) {
-                              toggleSelectItem(item.id);
-                            } else {
-                              setEditingItem(item);
-                            }
-                          }} 
-                          style={{
-                            margin: '4px 0',
-                            border: 'none',
-                            backgroundColor: 'rgba(255, 255, 255, 0.01)'
-                          }}
-                        >
-                          <div className="item-row-left">
-                            {isSelectionMode && (
-                              <div className={`row-checkbox ${selectedItemIds.includes(item.id) ? 'checked' : ''}`} style={{
-                                width: '22px',
-                                height: '22px',
-                                borderRadius: '50%',
-                                border: '2px solid rgba(255, 255, 255, 0.3)',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                marginRight: '12px',
-                                flexShrink: 0,
-                                backgroundColor: selectedItemIds.includes(item.id) ? 'var(--primary-color)' : 'transparent',
-                                borderColor: selectedItemIds.includes(item.id) ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.3)',
-                                transition: 'all 0.15s ease'
-                              }}>
-                                {selectedItemIds.includes(item.id) && (
-                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                                    <polyline points="20 6 9 17 4 12" />
-                                  </svg>
-                                )}
-                              </div>
-                            )}
-                            {item.imageUrl && (
-                              <img 
-                                src={item.imageUrl} 
-                                className="item-mini-photo" 
-                                alt="" 
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (isSelectionMode) {
-                                    toggleSelectItem(item.id);
-                                  } else {
-                                    setFullscreenImage({ images: item.images || [item.imageUrl as string], index: 0 });
-                                  }
-                                }} 
-                              />
-                            )}
-                            <div className="item-info">
-                              <span className="item-name">{item.name}</span>
-                              <div className="item-meta-row">
-                                <span className="item-qty">Quantity: {item.quantity || 1}</span>
-                                {item.purchaseDate && (
-                                  <span className="item-meta-date">Purchased: {item.purchaseDate}</span>
-                                )}
-                                {item.warrantyExpire && (
-                                  (() => {
-                                    const status = getWarrantyStatus(item.warrantyExpire);
-                                    if (!showExpired && status?.isExpired) return null;
-                                    return (
-                                      <span className="item-meta-date" style={{ color: status?.color }}>
-                                        Warranty: {item.warrantyExpire} ({status?.text})
-                                      </span>
-                                    );
-                                  })()
-                                )}
-                              </div>
-                              {item.tags && item.tags.length > 0 && (
-                                <div className="item-row-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
-                                  {item.tags.map((tag: string) => {
-                                    const colors = getTagColor(tag);
-                                    return (
-                                      <span 
-                                        key={tag} 
-                                        className="item-tag-pill" 
-                                        style={{ 
-                                          fontSize: '9px', 
-                                          padding: '1px 6px', 
-                                          backgroundColor: colors.bg, 
-                                          color: colors.text,
-                                          borderRadius: '4px',
-                                          textTransform: 'uppercase',
-                                          fontWeight: '700'
-                                        }}
-                                      >
-                                        {tag}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
+                  <div className={`group-items-list ${isCollapsed ? 'is-collapsed' : ''}`} style={{
+                    padding: '8px',
+                    display: isCollapsed ? 'none' : 'block'
+                  }}>
+                    {groupItems.map(item => (
+                      <div 
+                        key={item.id} 
+                        className={`item-row ${isSelectionMode ? 'in-selection-mode' : ''} ${isSelectionMode && selectedItemIds.includes(item.id) ? 'selected' : ''}`} 
+                        onClick={() => {
+                          if (isSelectionMode) {
+                            toggleSelectItem(item.id);
+                          } else {
+                            setEditingItem(item);
+                          }
+                        }} 
+                        style={{
+                          margin: '4px 0',
+                          border: 'none',
+                          backgroundColor: 'rgba(255, 255, 255, 0.01)'
+                        }}
+                      >
+                        <div className="item-row-left">
+                          {isSelectionMode && (
+                            <div className={`row-checkbox ${selectedItemIds.includes(item.id) ? 'checked' : ''}`} style={{
+                              width: '22px',
+                              height: '22px',
+                              borderRadius: '50%',
+                              border: '2px solid rgba(255, 255, 255, 0.3)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              marginRight: '12px',
+                              flexShrink: 0,
+                              backgroundColor: selectedItemIds.includes(item.id) ? 'var(--primary-color)' : 'transparent',
+                              borderColor: selectedItemIds.includes(item.id) ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.3)',
+                              transition: 'all 0.15s ease'
+                            }}>
+                              {selectedItemIds.includes(item.id) && (
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
                               )}
                             </div>
-                          </div>
-                          {!isSelectionMode && (
-                            <div className="item-row-actions">
-                              <button onClick={(e) => { e.stopPropagation(); removeItem(item.id); }} className="delete-item-btn">
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
                           )}
+                          {item.imageUrl && (
+                            <img 
+                              src={item.imageUrl} 
+                              className="item-mini-photo" 
+                              alt="" 
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (isSelectionMode) {
+                                  toggleSelectItem(item.id);
+                                } else {
+                                  setFullscreenImage({ images: item.images || [item.imageUrl as string], index: 0 });
+                                }
+                              }} 
+                            />
+                          )}
+                          <div className="item-info">
+                            <span className="item-name">{item.name}</span>
+                            <div className="item-meta-row">
+                              <span className="item-qty">Quantity: {item.quantity || 1}</span>
+                              {item.purchaseDate && (
+                                <span className="item-meta-date">Purchased: {item.purchaseDate}</span>
+                              )}
+                              {item.warrantyExpire && (
+                                (() => {
+                                  const status = getWarrantyStatus(item.warrantyExpire);
+                                  if (!showExpired && status?.isExpired) return null;
+                                  return (
+                                    <span className="item-meta-date" style={{ color: status?.color }}>
+                                      Warranty: {item.warrantyExpire} ({status?.text})
+                                    </span>
+                                  );
+                                })()
+                              )}
+                            </div>
+                            {item.tags && item.tags.length > 0 && (
+                              <div className="item-row-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
+                                {item.tags.map((tag: string) => {
+                                  const colors = getTagColor(tag);
+                                  return (
+                                    <span 
+                                      key={tag} 
+                                      className="item-tag-pill" 
+                                      style={{ 
+                                        fontSize: '9px', 
+                                        padding: '1px 6px', 
+                                        backgroundColor: colors.bg, 
+                                        color: colors.text,
+                                        borderRadius: '4px',
+                                        textTransform: 'uppercase',
+                                        fontWeight: '700'
+                                      }}
+                                    >
+                                      {tag}
+                                    </span>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                        {!isSelectionMode && (
+                          <div className="item-row-actions no-print">
+                            <button onClick={(e) => { e.stopPropagation(); removeItem(item.id); }} className="delete-item-btn">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               );
             })
@@ -1276,6 +1275,7 @@ const BoxDetail = () => {
       {editingItem && (
         <ItemEditModal 
           item={editingItem} 
+          boxes={boxes}
           showExpired={showExpired}
           isUploading={uploading}
           onShowExpiredChange={handleShowExpiredChange}

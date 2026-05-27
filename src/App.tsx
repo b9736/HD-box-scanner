@@ -652,7 +652,7 @@ const AppContent = () => {
         )}
 
         {!isMobile && (
-          <aside className="sidebar">
+          <aside className="sidebar no-print">
             <SidebarContent />
           </aside>
         )}

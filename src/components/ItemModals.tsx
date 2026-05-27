@@ -6,6 +6,7 @@ import { getTagColor } from '../utils/tagColors';
 import { ConfirmationModal } from './ConfirmationModal';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useItems } from '../hooks/useItems';
+import { useBoxes } from '../hooks/useBoxes';
 
 export const ImageSourceModal: React.FC<{onSelect: (s: 'camera' | 'gallery') => void, onClose: () => void}> = ({ onSelect, onClose }) => {
   const [isClosing, setIsClosing] = useState(false);
@@ -37,6 +38,7 @@ export const ImageSourceModal: React.FC<{onSelect: (s: 'camera' | 'gallery') => 
 
 interface ItemEditModalProps {
   item: any;
+  boxes: any[];
   showExpired: boolean;
   isUploading: boolean;
   onShowExpiredChange: (checked: boolean) => void;
@@ -50,6 +52,7 @@ interface ItemEditModalProps {
 
 export const ItemEditModal: React.FC<ItemEditModalProps> = ({ 
   item, 
+  boxes,
   showExpired, 
   isUploading,
   onShowExpiredChange, 
@@ -72,6 +75,14 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   const [saving, setSaving] = useState(false);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [newGroupInput, setNewGroupInput] = useState('');
+  
+  // Box selection & creation states
+  const [selectedBoxId, setSelectedBoxId] = useState(item.boxId || '');
+  const [showCreateBoxForm, setShowCreateBoxForm] = useState(false);
+  const [newBoxName, setNewBoxName] = useState('');
+  const [newBoxRoom, setNewBoxRoom] = useState('');
+  const [isCreatingBox, setIsCreatingBox] = useState(false);
+  const { createBox } = useBoxes();
 
   const { items: allItems } = useItems();
   const globalGroups = React.useMemo(() => {
@@ -147,6 +158,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
     warrantyExpire !== (item.warrantyExpire || '') ||
     description !== (item.description || '') ||
     (groupName || '') !== (item.groupName || '') ||
+    selectedBoxId !== (item.boxId || '') ||
     JSON.stringify([...selectedTags].sort()) !== JSON.stringify([...(item.tags || [])].sort()) ||
     tagInput !== '';
 
@@ -180,6 +192,23 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
     setTimeout(onClose, 300);
   };
 
+  const handleCreateNewBoxInline = async () => {
+    if (!newBoxName.trim()) return;
+    setIsCreatingBox(true);
+    try {
+      const newId = await createBox(newBoxName.trim(), newBoxRoom.trim(), []);
+      setSelectedBoxId(newId);
+      setShowCreateBoxForm(false);
+      setNewBoxName('');
+      setNewBoxRoom('');
+    } catch (err) {
+      console.error("Failed to create box inline:", err);
+      alert("Error: Failed to create new box.");
+    } finally {
+      setIsCreatingBox(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -203,7 +232,8 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
         imageUrl,
         receiptUrl,
         images: newImages,
-        groupName: groupName.trim()
+        groupName: groupName.trim(),
+        boxId: selectedBoxId
       });
       handleClose();
     } catch (err) {
@@ -349,6 +379,104 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
             <label>Item Name</label>
             <input type="text" value={name} onChange={e => setName(e.target.value)} required />
           </div>
+
+          <div className="form-group">
+            <label>Current Box</label>
+            <select 
+              value={selectedBoxId} 
+              onChange={e => {
+                if (e.target.value === '__new__') {
+                  setShowCreateBoxForm(true);
+                } else {
+                  setSelectedBoxId(e.target.value);
+                  setShowCreateBoxForm(false);
+                }
+              }} 
+              className="premium-select"
+            >
+              <option value="">Unassigned (No Box)</option>
+              {boxes.map(box => (
+                <option key={box.id} value={box.id}>{box.name} {box.room ? `(${box.room})` : ''}</option>
+              ))}
+              <option value="__new__" style={{ color: 'var(--primary-color)', fontWeight: 600 }}>+ Create New Box...</option>
+            </select>
+          </div>
+
+          {showCreateBoxForm && (
+            <div className="inline-create-box-form" style={{
+              background: 'rgba(255, 255, 255, 0.02)',
+              border: '1px dashed rgba(255, 255, 255, 0.1)',
+              borderRadius: '12px',
+              padding: '16px',
+              marginBottom: '16px',
+              marginTop: '-8px'
+            }}>
+              <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>New Box Details</h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <input 
+                  type="text" 
+                  placeholder="Box Name (e.g. Tools, Kitchen Items)..."
+                  value={newBoxName}
+                  onChange={e => setNewBoxName(e.target.value)}
+                  style={{
+                    backgroundColor: 'var(--surface-hover)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    width: '100%'
+                  }}
+                />
+                <input 
+                  type="text" 
+                  placeholder="Room / Location (Optional)..."
+                  value={newBoxRoom}
+                  onChange={e => setNewBoxRoom(e.target.value)}
+                  style={{
+                    backgroundColor: 'var(--surface-hover)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '8px 12px',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    width: '100%'
+                  }}
+                />
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '4px' }}>
+                  <button 
+                    type="button" 
+                    className="option-btn" 
+                    onClick={() => {
+                      setShowCreateBoxForm(false);
+                      setSelectedBoxId(item.boxId || '');
+                    }}
+                    style={{ padding: '6px 12px', fontSize: '13px', borderRadius: '8px' }}
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    type="button" 
+                    onClick={handleCreateNewBoxInline}
+                    disabled={isCreatingBox || !newBoxName.trim()}
+                    style={{
+                      backgroundColor: 'var(--primary-color)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      padding: '6px 16px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      opacity: (!newBoxName.trim() || isCreatingBox) ? 0.6 : 1
+                    }}
+                  >
+                    {isCreatingBox ? 'Creating...' : 'Create Box'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="form-group">
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>Group</label>

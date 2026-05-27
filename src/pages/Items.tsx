@@ -619,6 +619,7 @@ const ItemsPage = () => {
       {editingItem && (
         <ItemEditModal 
           item={editingItem}
+          boxes={boxes}
           showExpired={showExpiredInItems}
           isUploading={isUploading}
           onShowExpiredChange={(checked) => {
@@ -926,29 +927,58 @@ const ItemsPage = () => {
                 </div>
               )}
 
-              <div className="form-group" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => {
-                const val = !applyOnlyToDesktop;
-                setApplyOnlyToDesktop(val);
-                localStorage.setItem('applyOnlyToDesktop', String(val));
-              }}>
-                <div style={{ 
-                  width: '24px', 
-                  height: '24px', 
-                  borderRadius: '6px', 
-                  border: '2px solid var(--primary-color)',
+              <div 
+                className="toggle-wrapper" 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  marginBottom: '20px', 
+                  cursor: 'pointer',
+                  padding: '12px 16px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-color)',
+                  transition: 'background-color 0.2s'
+                }} 
+                onClick={() => {
+                  const val = !applyOnlyToDesktop;
+                  setApplyOnlyToDesktop(val);
+                  localStorage.setItem('applyOnlyToDesktop', String(val));
+                }}
+              >
+                <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  Apply only to Web (Desktop)
+                </span>
+                
+                {/* Custom Premium Sliding Switch Toggle */}
+                <div style={{
+                  width: '46px',
+                  height: '26px',
+                  borderRadius: '100px',
+                  backgroundColor: applyOnlyToDesktop ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.08)',
+                  padding: '3px',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: applyOnlyToDesktop ? 'var(--primary-color)' : 'transparent',
-                  transition: 'all 0.2s'
+                  transition: 'background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.4)',
+                  flexShrink: 0
                 }}>
-                  {applyOnlyToDesktop && <CheckCircle2 size={16} color="white" />}
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ffffff',
+                    transform: applyOnlyToDesktop ? 'translateX(20px)' : 'translateX(0)',
+                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.4)'
+                  }} />
                 </div>
-                <span style={{ fontSize: '15px', fontWeight: '600' }}>Apply only to Web (Desktop)</span>
               </div>
 
-              <button className="option-btn primary" onClick={() => setShowDisplaySettings(false)}>
-                Done
+              <button className="submit-btn" style={{ width: '100%', marginTop: '20px' }} onClick={() => setShowDisplaySettings(false)}>
+                Save
               </button>
             </div>
           </div>
