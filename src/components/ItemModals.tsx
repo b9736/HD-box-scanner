@@ -106,7 +106,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
     return Array.from(union).sort();
   }, [existingRooms, localRooms, customLocations, room]);
 
-  const { items: allItems } = useItems();
+  const { items: allItems, removeItem } = useItems();
   const globalGroups = React.useMemo(() => {
     const groupsSet = new Set<string>();
     allItems.forEach(item => {
@@ -566,65 +566,49 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
           </div>
 
           <div className="form-group">
-            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>Group</label>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>Box Item Group</label>
             
-            {/* Group Chips Container */}
-            <div className="group-chips-container" style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              gap: '8px',
-              marginBottom: '12px',
-              maxHeight: '120px',
-              overflowY: 'auto',
-              padding: '4px 0'
-            }}>
-              {renderedGroups.map(g => {
-                const isSelected = groupName === g;
-                return (
-                  <button
-                    key={g}
-                    type="button"
-                    className={`group-chip ${isSelected ? 'active' : ''}`}
-                    onClick={() => setGroupName(isSelected ? '' : g)}
-                    style={{
-                      padding: '6px 12px',
-                      borderRadius: '20px',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      border: '1px solid',
-                      borderColor: isSelected ? 'var(--primary-color)' : 'rgba(255,255,255,0.08)',
-                      backgroundColor: isSelected ? 'var(--primary-color)' : 'rgba(255,255,255,0.04)',
-                      color: isSelected ? '#ffffff' : 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px'
-                    }}
-                  >
-                    <span style={{
-                      width: '6px',
-                      height: '6px',
-                      borderRadius: '50%',
-                      backgroundColor: isSelected ? '#ffffff' : 'rgba(255,255,255,0.3)',
-                      display: 'inline-block'
-                    }} />
-                    {g}
-                  </button>
-                );
-              })}
-              {renderedGroups.length === 0 && (
-                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                  No groups created yet. Use the field below to add one.
-                </span>
-              )}
-            </div>
+            {/* Selected Group Chip (above input field) */}
+            {groupName && (
+              <div className="selected-group-container" style={{ marginBottom: '12px' }}>
+                <button
+                  type="button"
+                  className="group-chip active"
+                  onClick={() => setGroupName('')}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    border: '1px solid var(--primary-color)',
+                    backgroundColor: 'var(--primary-color)',
+                    color: '#ffffff',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <span style={{
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ffffff',
+                    display: 'inline-block'
+                  }} />
+                  {groupName}
+                  <span style={{ marginLeft: '4px', opacity: 0.8, fontSize: '10px' }}>✕</span>
+                </button>
+              </div>
+            )}
 
             {/* Quick Add Group Field */}
             <div className="group-add-wrapper" style={{
               display: 'flex',
               gap: '8px',
-              marginTop: '4px'
+              marginTop: '4px',
+              marginBottom: '12px'
             }}>
               <input 
                 type="text" 
@@ -667,6 +651,57 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
               >
                 <Plus size={16} /> Add
               </button>
+            </div>
+
+            {/* Unselected Group Chips Container (below input field) */}
+            <div className="group-chips-container" style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '8px',
+              maxHeight: '120px',
+              overflowY: 'auto',
+              padding: '4px 0'
+            }}>
+              {renderedGroups
+                .filter(g => g !== groupName)
+                .map(g => {
+                  return (
+                    <button
+                      key={g}
+                      type="button"
+                      className="group-chip"
+                      onClick={() => setGroupName(g)}
+                      style={{
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        backgroundColor: 'rgba(255,255,255,0.04)',
+                        color: 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      <span style={{
+                        width: '6px',
+                        height: '6px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(255,255,255,0.3)',
+                        display: 'inline-block'
+                      }} />
+                      {g}
+                    </button>
+                  );
+                })}
+              {renderedGroups.filter(g => g !== groupName).length === 0 && (
+                <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                  No other groups available.
+                </span>
+              )}
             </div>
           </div>
 
@@ -782,6 +817,57 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
               <input type="checkbox" checked={showExpired} onChange={(e) => onShowExpiredChange(e.target.checked)} style={{ width: '16px', height: '16px', cursor: 'pointer' }} />
               Show Expired in Items Card
             </label>
+          </div>
+
+          <div style={{ marginTop: '24px', borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: '20px' }}>
+            <button
+              type="button"
+              className="btn btn-destructive"
+              onClick={() => {
+                setConfirmModal({
+                  isOpen: true,
+                  title: 'Delete Item permanently?',
+                  message: `Are you sure you want to delete "${name}" permanently? This action cannot be undone.`,
+                  type: 'destructive',
+                  onConfirm: async () => {
+                    try {
+                      await removeItem(item.id);
+                      setConfirmModal(prev => ({ ...prev, isOpen: false }));
+                      onClose();
+                    } catch (err) {
+                      console.error("Error deleting item:", err);
+                      alert("Failed to delete item.");
+                    }
+                  }
+                });
+              }}
+              style={{
+                width: '100%',
+                backgroundColor: 'rgba(255, 69, 58, 0.15)',
+                color: '#ff453a',
+                border: '1px solid rgba(255, 69, 58, 0.3)',
+                padding: '12px',
+                borderRadius: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontSize: '14px',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 69, 58, 0.25)';
+                e.currentTarget.style.borderColor = 'rgba(255, 69, 58, 0.5)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 69, 58, 0.15)';
+                e.currentTarget.style.borderColor = 'rgba(255, 69, 58, 0.3)';
+              }}
+            >
+              <Trash2 size={16} /> Delete Item
+            </button>
           </div>
         </form>
       </div>

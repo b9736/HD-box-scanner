@@ -28,6 +28,7 @@ const BoxDetail = () => {
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editHasQRCode, setEditHasQRCode] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<Item | null>(null);
   const [showAddNewRoomInput, setShowAddNewRoomInput] = useState(false);
   const [newRoomInput, setNewRoomInput] = useState('');
   const [localRooms, setLocalRooms] = useState<string[]>([]);
@@ -281,7 +282,7 @@ const BoxDetail = () => {
             )}
             {!isSelectionMode && (
               <button 
-                onClick={(e) => { e.stopPropagation(); removeItem(item.id); }} 
+                onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} 
                 className="delete-item-btn"
                 style={{
                   background: 'none',
@@ -375,7 +376,7 @@ const BoxDetail = () => {
             )}
             {!isSelectionMode && (
               <button 
-                onClick={(e) => { e.stopPropagation(); removeItem(item.id); }} 
+                onClick={(e) => { e.stopPropagation(); setItemToDelete(item); }} 
                 className="delete-item-btn"
                 style={{
                   background: 'none',
@@ -1548,6 +1549,51 @@ const BoxDetail = () => {
           </div>
         </div>
       )}
+
+      {/* Delete Item Confirmation Modal */}
+      {itemToDelete && (
+        <div className="action-sheet-overlay" onClick={() => setItemToDelete(null)}>
+          <div className="action-sheet" onClick={e => e.stopPropagation()}>
+            <div className="action-sheet-header">
+              <h3>Remove "{itemToDelete.name}"?</h3>
+              <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px'}}>
+                Choose whether to remove this item from the box or delete it permanently from your inventory.
+              </p>
+            </div>
+            <div className="action-sheet-options">
+              <button 
+                className="option-btn" 
+                onClick={async () => {
+                  try {
+                    await updateItem(itemToDelete.id, { boxId: '' });
+                    setItemToDelete(null);
+                  } catch (err) {
+                    console.error("Error removing item from box:", err);
+                    alert("Failed to remove item from box.");
+                  }
+                }}
+              >
+                Remove from Box (Keep in Inventory)
+              </button>
+              <button 
+                className="option-btn destructive" 
+                onClick={async () => {
+                  try {
+                    await removeItem(itemToDelete.id);
+                    setItemToDelete(null);
+                  } catch (err) {
+                    console.error("Error deleting item permanently:", err);
+                    alert("Failed to delete item.");
+                  }
+                }}
+              >
+                Delete Permanently
+              </button>
+              <button className="option-btn" onClick={() => setItemToDelete(null)} style={{ borderTop: '1px solid rgba(255,255,255,0.08)' }}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
       {showQRModal && (
         <QRCodePreviewModal 
           value={box.id} 
@@ -1645,66 +1691,50 @@ const BoxDetail = () => {
                   </div>
                 </div>
 
-                <div className="form-group" style={{ marginTop: '16px' }}>
-                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>Group</label>
+                 <div className="form-group" style={{ marginTop: '16px' }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>Box Item Group</label>
                   
-                  {/* Group Chips Container */}
-                  <div className="group-chips-container" style={{
-                    display: 'flex',
-                    flexWrap: 'wrap',
-                    gap: '8px',
-                    marginBottom: '12px',
-                    maxHeight: '120px',
-                    overflowY: 'auto',
-                    padding: '4px 0'
-                  }}>
-                    {renderedGroups.map(g => {
-                      const isSelected = sheetGroupName === g;
-                      return (
-                        <button
-                          key={g}
-                          type="button"
-                          className={`group-chip ${isSelected ? 'active' : ''}`}
-                          onClick={() => setSheetGroupName(isSelected ? '' : g)}
-                          style={{
-                            padding: '6px 12px',
-                            borderRadius: '20px',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            border: '1px solid',
-                            borderColor: isSelected ? 'var(--primary-color)' : 'rgba(255,255,255,0.08)',
-                            backgroundColor: isSelected ? 'var(--primary-color)' : 'rgba(255,255,255,0.04)',
-                            color: isSelected ? '#ffffff' : 'var(--text-secondary)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          <span style={{
-                            width: '6px',
-                            height: '6px',
-                            borderRadius: '50%',
-                            backgroundColor: isSelected ? '#ffffff' : 'rgba(255,255,255,0.3)',
-                            display: 'inline-block'
-                          }} />
-                          {g}
-                        </button>
-                      );
-                    })}
-                    {renderedGroups.length === 0 && (
-                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                        No groups created yet. Use the field below to add one.
-                      </span>
-                    )}
-                  </div>
+                  {/* Selected Group Chip (above input field) */}
+                  {sheetGroupName && (
+                    <div className="selected-group-container" style={{ marginBottom: '12px' }}>
+                      <button
+                        type="button"
+                        className="group-chip active"
+                        onClick={() => setSheetGroupName('')}
+                        style={{
+                          padding: '6px 12px',
+                          borderRadius: '20px',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          border: '1px solid var(--primary-color)',
+                          backgroundColor: 'var(--primary-color)',
+                          color: '#ffffff',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <span style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          backgroundColor: '#ffffff',
+                          display: 'inline-block'
+                        }} />
+                        {sheetGroupName}
+                        <span style={{ marginLeft: '4px', opacity: 0.8, fontSize: '10px' }}>✕</span>
+                      </button>
+                    </div>
+                  )}
 
                   {/* Quick Add Group Field */}
                   <div className="group-add-wrapper" style={{
                     display: 'flex',
                     gap: '8px',
-                    marginTop: '4px'
+                    marginTop: '4px',
+                    marginBottom: '12px'
                   }}>
                     <input 
                       type="text" 
@@ -1747,6 +1777,57 @@ const BoxDetail = () => {
                     >
                       <Plus size={16} /> Add
                     </button>
+                  </div>
+
+                  {/* Unselected Group Chips Container (below input field) */}
+                  <div className="group-chips-container" style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '8px',
+                    maxHeight: '120px',
+                    overflowY: 'auto',
+                    padding: '4px 0'
+                  }}>
+                    {renderedGroups
+                      .filter(g => g !== sheetGroupName)
+                      .map(g => {
+                        return (
+                          <button
+                            key={g}
+                            type="button"
+                            className="group-chip"
+                            onClick={() => setSheetGroupName(g)}
+                            style={{
+                              padding: '6px 12px',
+                              borderRadius: '20px',
+                              fontSize: '12px',
+                              fontWeight: 600,
+                              border: '1px solid rgba(255,255,255,0.08)',
+                              backgroundColor: 'rgba(255,255,255,0.04)',
+                              color: 'var(--text-secondary)',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <span style={{
+                              width: '6px',
+                              height: '6px',
+                              borderRadius: '50%',
+                              backgroundColor: 'rgba(255,255,255,0.3)',
+                              display: 'inline-block'
+                            }} />
+                            {g}
+                          </button>
+                        );
+                      })}
+                    {renderedGroups.filter(g => g !== sheetGroupName).length === 0 && (
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                        No other groups available.
+                      </span>
+                    )}
                   </div>
                 </div>
 
