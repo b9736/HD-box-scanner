@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Package, Plus, ChevronRight, X, LayoutGrid, List, Sliders, Tag, Trash2, CheckSquare, Square, Tags, CheckCircle2, Settings, Minus } from 'lucide-react';
+import { Search, Package, Plus, X, LayoutGrid, List, Sliders, Tag, Trash2, CheckSquare, Square, Tags, CheckCircle2, Settings, Minus } from 'lucide-react';
 import { useItems } from '../hooks/useItems';
 import { useBoxes } from '../hooks/useBoxes';
 import { useItemTags } from '../hooks/useItemTags';
@@ -487,7 +487,7 @@ const ItemsPage = () => {
                       )}
                       <div className="item-list-info">
                         <span className="item-list-name">{item.name}</span>
-                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
                           {box && (
                             <span className="item-list-box">{box.name}</span>
                           )}
@@ -509,7 +509,7 @@ const ItemsPage = () => {
                               marginBottom: '4px',
                               whiteSpace: 'nowrap'
                             }}>
-                              {warranty.isExpired ? 'Warranty: Expired' : `Warranty: ${warranty.text}`}
+                              {warranty.isExpired ? 'Expired' : warranty.text}
                             </span>
                           )}
                         </div>
@@ -531,7 +531,6 @@ const ItemsPage = () => {
                       {item.quantity > 1 && (
                         <span className="item-list-qty">{item.quantity}x</span>
                       )}
-                      <ChevronRight size={18} className="item-card-arrow" />
                     </div>
                   </div>
                 );
@@ -597,7 +596,6 @@ const ItemsPage = () => {
                           {warranty.isExpired ? 'Expired' : warranty.text}
                         </span>
                       )}
-                      <ChevronRight size={16} className="item-card-arrow" />
                     </div>
                   </div>
                 </div>
