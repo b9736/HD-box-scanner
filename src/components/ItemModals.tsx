@@ -1314,10 +1314,10 @@ export const FullscreenGallery: React.FC<{
           </button>
         </>
       )}
-      <div className="fullscreen-scroll" ref={scrollRef} onScroll={handleScroll} onClick={e => e.stopPropagation()}>
+      <div className="fullscreen-scroll" ref={scrollRef} onScroll={handleScroll}>
         {images.map((img, idx) => (
           <div key={idx} className="fullscreen-slide">
-            <img src={img} alt="" />
+            <img src={img} alt="" onClick={e => e.stopPropagation()} />
           </div>
         ))}
       </div>
