@@ -323,19 +323,21 @@ const Home = () => {
                         <span className="box-item-count">({allItems.filter(i => i.boxId === box.id).length})</span>
                       </div>
                       <div className="box-row-meta" style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '6px', marginBottom: '6px', flexWrap: 'wrap' }}>
-                        <span style={{
-                          backgroundColor: 'var(--surface-hover)',
-                          color: '#ffffff',
-                          border: '1px solid var(--border-color)',
-                          padding: '3px 8px',
-                          borderRadius: '8px',
-                          fontSize: '11px',
-                          fontWeight: 600,
-                          display: 'inline-flex',
-                          alignItems: 'center'
-                        }}>
-                          Location: {box.room || 'No Room'}
-                        </span>
+                        {box.room && (
+                          <span style={{
+                            backgroundColor: 'var(--surface-hover)',
+                            color: '#ffffff',
+                            border: '1px solid var(--border-color)',
+                            padding: '3px 8px',
+                            borderRadius: '8px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}>
+                            Location: {box.room}
+                          </span>
+                        )}
                         {box.hasQRCode && (
                           <span style={{
                             backgroundColor: 'var(--surface-hover)',

@@ -136,21 +136,23 @@ const Trash = () => {
                     <div className="box-row-title" style={{ opacity: 0.7 }}>
                       {box.name}
                     </div>
-                    <div className="box-row-meta" style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '6px', marginBottom: '6px' }}>
-                      <span style={{
-                        backgroundColor: 'var(--surface-hover)',
-                        color: '#ffffff',
-                        border: '1px solid var(--border-color)',
-                        padding: '3px 8px',
-                        borderRadius: '8px',
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        display: 'inline-flex',
-                        alignItems: 'center'
-                      }}>
-                        Location: {box.room || 'No Room'}
-                      </span>
-                    </div>
+                    {box.room && (
+                      <div className="box-row-meta" style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '6px', marginBottom: '6px' }}>
+                        <span style={{
+                          backgroundColor: 'var(--surface-hover)',
+                          color: '#ffffff',
+                          border: '1px solid var(--border-color)',
+                          padding: '3px 8px',
+                          borderRadius: '8px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center'
+                        }}>
+                          Location: {box.room}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
 

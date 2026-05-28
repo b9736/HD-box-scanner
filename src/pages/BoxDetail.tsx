@@ -28,6 +28,22 @@ const BoxDetail = () => {
   const [editImageUrl, setEditImageUrl] = useState('');
   const [editHasQRCode, setEditHasQRCode] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showAddNewRoomInput, setShowAddNewRoomInput] = useState(false);
+  const [newRoomInput, setNewRoomInput] = useState('');
+  const [localRooms, setLocalRooms] = useState<string[]>([]);
+
+  const existingRooms = React.useMemo(() => {
+    return Array.from(new Set(boxes.map(b => b.room).filter(Boolean))).sort();
+  }, [boxes]);
+
+  const renderedRooms = React.useMemo(() => {
+    const union = new Set<string>(existingRooms);
+    localRooms.forEach(r => union.add(r));
+    if (editRoom) {
+      union.add(editRoom);
+    }
+    return Array.from(union).sort();
+  }, [existingRooms, localRooms, editRoom]);
   
   // Slide-up bottom sheet states
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
@@ -672,15 +688,65 @@ const BoxDetail = () => {
             </div>
             
             <div className="form-row-compact">
-              <div className="form-group flex-1">
-                <label>Location</label>
-                <input 
-                  type="text" 
-                  placeholder="Attic..." 
-                  value={editRoom} 
-                  onChange={(e) => setEditRoom(e.target.value)} 
-                  autoComplete="off"
-                />
+              <div className="form-group flex-1" style={{ display: 'flex', flexDirection: 'column' }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>Location</label>
+                {!showAddNewRoomInput ? (
+                  <select 
+                    value={editRoom} 
+                    onChange={e => {
+                      if (e.target.value === 'add-new-room') {
+                        setShowAddNewRoomInput(true);
+                        setNewRoomInput('');
+                      } else {
+                        setEditRoom(e.target.value);
+                      }
+                    }} 
+                    className="premium-select"
+                  >
+                    <option value="">Unassigned</option>
+                    {renderedRooms.map(r => (
+                      <option key={r} value={r}>{r}</option>
+                    ))}
+                    <option value="add-new-room" style={{ color: 'var(--primary-color)', fontWeight: 600 }}>+ Add New Location...</option>
+                  </select>
+                ) : (
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <input 
+                      type="text" 
+                      value={newRoomInput} 
+                      onChange={e => setNewRoomInput(e.target.value)} 
+                      placeholder="Enter new location name"
+                      className="premium-input"
+                      style={{ flex: 1, margin: 0, width: '100%', minWidth: '150px' }}
+                      autoFocus
+                    />
+                    <button 
+                      type="button" 
+                      className="submit-btn" 
+                      style={{ padding: '8px 16px', height: '100%', fontSize: '13px' }}
+                      onClick={() => {
+                        const trimmed = newRoomInput.trim();
+                        if (trimmed) {
+                          if (!localRooms.includes(trimmed)) {
+                            setLocalRooms(prev => [...prev, trimmed]);
+                          }
+                          setEditRoom(trimmed);
+                          setShowAddNewRoomInput(false);
+                        }
+                      }}
+                    >
+                      Done
+                    </button>
+                    <button 
+                      type="button" 
+                      className="cancel-btn" 
+                      style={{ padding: '8px 16px', height: '100%', fontSize: '13px', margin: 0 }}
+                      onClick={() => setShowAddNewRoomInput(false)}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
               </div>
               <div className="form-group" style={{ flex: '0 0 auto', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: '8px' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '13px' }}>
@@ -746,7 +812,7 @@ const BoxDetail = () => {
             <div className="box-hero-info" style={{ padding: 0 }}>
               <h1 className="box-detail-title">Box: {box.name}</h1>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '2px', marginBottom: '4px' }}>
-                <div className="box-room-large">{box.room || 'No Room'}</div>
+                {box.room && <div className="box-room-large">{box.room}</div>}
                 {box.hasQRCode && (
                   <span style={{ 
                     fontSize: '12px', 
