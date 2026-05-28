@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Camera, Image, Plus, ArrowLeft, Star, Tag, Edit2, Trash2, Download } from 'lucide-react';
+import { X, Camera, Image, Plus, ArrowLeft, Star, Tag, Edit2, Trash2, Download, Scan } from 'lucide-react';
+import Scanner from './Scanner';
 import { getWarrantyStatus } from '../utils/warranty';
 import { useItemTags } from '../hooks/useItemTags';
 import { getTagColor } from '../utils/tagColors';
@@ -1382,8 +1383,13 @@ export const QRCodePreviewModal: React.FC<{
   title: string;
   qrId?: string;
   onClose: () => void;
-}> = ({ value, title, qrId, onClose }) => {
+  onAssignQRSuccess?: (newId: string) => void;
+}> = ({ value, title, qrId, onClose, onAssignQRSuccess }) => {
   const [isClosing, setIsClosing] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scannedId, setScannedId] = useState<string | null>(null);
+  const [isMigrating, setIsMigrating] = useState(false);
+  const { migrateBoxToCustomId } = useBoxes();
 
   const handleClose = () => {
     setIsClosing(true);
@@ -1404,27 +1410,148 @@ export const QRCodePreviewModal: React.FC<{
   return (
     <div className={`modal-overlay ${isClosing ? 'closing' : ''}`} onClick={handleClose}>
       <div className={`modal-content qr-preview-modal ${isClosing ? 'closing' : ''}`} onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center', padding: '32px' }}>
-        <div className="modal-header" style={{ marginBottom: '24px', justifyContent: 'center', border: 'none' }}>
-          <h3 style={{ margin: 0 }}>Box Name: {title} {qrId && `(ID: ${qrId})`}</h3>
-        </div>
         
-        <div className="qr-modal-canvas" style={{ background: 'white', padding: '20px', borderRadius: '16px', display: 'inline-block', marginBottom: '24px', boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }}>
-          <QRCodeCanvas 
-            value={value} 
-            size={256} 
-            level="H" 
-            includeMargin={true} 
-          />
-        </div>
+        {isScanning ? (
+          <>
+            <div className="modal-header" style={{ marginBottom: '20px', justifyContent: 'center', border: 'none' }}>
+              <h3 style={{ margin: 0 }}>Scan New QR Code</h3>
+            </div>
+            
+            <div style={{ position: 'relative', width: '100%', height: '280px', borderRadius: '16px', overflow: 'hidden', marginBottom: '24px', backgroundColor: '#000' }}>
+              <Scanner 
+                onScanSuccess={(decodedText) => {
+                  const clean = decodedText.trim();
+                  if (clean === qrId) {
+                    alert("This QR Code is already assigned to this box!");
+                    return;
+                  }
+                  setScannedId(clean);
+                  setIsScanning(false);
+                }} 
+              />
+            </div>
 
-        <div className="qr-modal-actions" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <button className="option-btn primary" onClick={handleDownload} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '48px', borderRadius: '12px' }}>
-            <Download size={20} /> Download PNG
-          </button>
-          <button className="option-btn" onClick={handleClose} style={{ width: '100%', height: '48px', borderRadius: '12px' }}>
-            Close
-          </button>
-        </div>
+            <div className="qr-modal-actions">
+              <button className="option-btn" onClick={() => setIsScanning(false)} style={{ width: '100%', height: '48px', borderRadius: '12px' }}>
+                Cancel Scanning
+              </button>
+            </div>
+          </>
+        ) : scannedId ? (
+          <>
+            <div className="modal-header" style={{ marginBottom: '24px', justifyContent: 'center', border: 'none' }}>
+              <h3 style={{ margin: 0 }}>Confirm QR Reassignment</h3>
+            </div>
+            
+            <p style={{ color: 'var(--text-secondary)', fontSize: '13px', margin: '-12px 0 20px 0' }}>
+              Are you sure you want to replace this box's QR ID? All contents will be safely migrated.
+            </p>
+
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '16px', 
+              textAlign: 'left', 
+              backgroundColor: 'rgba(255,255,255,0.03)', 
+              padding: '16px', 
+              borderRadius: '16px', 
+              border: '1px solid var(--border-color)', 
+              marginBottom: '24px' 
+            }}>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '13px' }}>Current QR ID:</span>
+                <div style={{ 
+                  backgroundColor: 'var(--surface-hover)', 
+                  border: '1px solid var(--border-color)', 
+                  padding: '10px 14px', 
+                  borderRadius: '12px', 
+                  color: 'var(--text-primary)', 
+                  fontSize: '15px', 
+                  fontWeight: 600, 
+                  marginTop: '6px' 
+                }}>
+                  {qrId}
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', fontSize: '20px', margin: '-4px 0' }}>⬇️</div>
+              <div>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 600, fontSize: '13px' }}>New Scanned QR ID:</span>
+                <div style={{ 
+                  backgroundColor: 'rgba(62, 130, 247, 0.05)', 
+                  border: '1px solid var(--primary-color)', 
+                  padding: '10px 14px', 
+                  borderRadius: '12px', 
+                  color: 'var(--primary-color)', 
+                  fontSize: '15px', 
+                  fontWeight: 700, 
+                  marginTop: '6px' 
+                }}>
+                  {scannedId}
+                </div>
+              </div>
+            </div>
+
+            <div className="qr-modal-actions" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button 
+                className="option-btn primary" 
+                disabled={isMigrating}
+                onClick={async () => {
+                  setIsMigrating(true);
+                  try {
+                    await migrateBoxToCustomId(qrId!, scannedId);
+                    if (onAssignQRSuccess) {
+                      onAssignQRSuccess(scannedId);
+                    }
+                    alert("QR Code reassigned successfully!");
+                    handleClose();
+                  } catch (err: any) {
+                    alert(err.message || "Failed to reassign QR code.");
+                    setScannedId(null);
+                  } finally {
+                    setIsMigrating(false);
+                  }
+                }}
+                style={{ width: '100%', height: '48px', borderRadius: '12px' }}
+              >
+                {isMigrating ? "Assigning..." : "Confirm & Assign"}
+              </button>
+              <button 
+                className="option-btn" 
+                onClick={() => setScannedId(null)}
+                style={{ width: '100%', height: '48px', borderRadius: '12px' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="modal-header" style={{ marginBottom: '24px', justifyContent: 'center', border: 'none' }}>
+              <h3 style={{ margin: 0 }}>Box Name: {title} {qrId && `(ID: ${qrId})`}</h3>
+            </div>
+            
+            <div className="qr-modal-canvas" style={{ background: 'white', padding: '20px', borderRadius: '16px', display: 'inline-block', marginBottom: '24px', boxShadow: '0 8px 30px rgba(0,0,0,0.2)' }}>
+              <QRCodeCanvas 
+                value={value} 
+                size={256} 
+                level="H" 
+                includeMargin={true} 
+              />
+            </div>
+
+            <div className="qr-modal-actions" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <button className="option-btn primary" onClick={handleDownload} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '48px', borderRadius: '12px' }}>
+                <Download size={20} /> Download PNG
+              </button>
+              <button className="option-btn choice-btn" onClick={() => setIsScanning(true)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '48px', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'transparent' }}>
+                <Scan size={20} /> Assign QR Code
+              </button>
+              <button className="option-btn" onClick={handleClose} style={{ width: '100%', height: '48px', borderRadius: '12px' }}>
+                Close
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

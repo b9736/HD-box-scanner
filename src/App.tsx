@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
-import { Scan, Search, Package, Settings, Plus, Sliders, Menu, Image, Folder, CheckSquare, Square, Trash2, CheckCircle2, LayoutGrid, List, Minus, X } from 'lucide-react';
+import { Scan, Search, Package, Settings, Plus, Sliders, Menu, Image, Folder, CheckSquare, Square, Trash2, CheckCircle2, LayoutGrid, List, Minus } from 'lucide-react';
 import { getTagColor } from './utils/tagColors';
 import { getWarrantyStatus } from './utils/warranty';
 import './index.css';
@@ -85,10 +85,31 @@ const Home = () => {
   const [gridColumns, setGridColumns] = useState<number>(Number(localStorage.getItem('boxesGridColumns')) || 2);
   const [gridRows, setGridRows] = useState<number>(Number(localStorage.getItem('boxesGridRows')) || 20);
   const [listRows, setListRows] = useState<number>(Number(localStorage.getItem('boxesListRows')) || 20);
+  const [listColumns, setListColumns] = useState<number>(Number(localStorage.getItem('boxesListColumns')) || 1);
   const [listScrollMode, setListScrollMode] = useState<'vertical' | 'horizontal'>(localStorage.getItem('boxesListScrollMode') as 'vertical' | 'horizontal' || 'vertical');
   const [applyOnlyToDesktop, setApplyOnlyToDesktop] = useState<boolean>(localStorage.getItem('boxesApplyOnlyToDesktop') === 'true');
   const [showDisplaySettings, setShowDisplaySettings] = useState(false);
   const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
+
+  const handleSaveSettings = () => {
+    localStorage.setItem('boxesGridColumns', String(gridColumns));
+    localStorage.setItem('boxesGridRows', String(gridRows));
+    localStorage.setItem('boxesListRows', String(listRows));
+    localStorage.setItem('boxesListColumns', String(listColumns));
+    localStorage.setItem('boxesListScrollMode', listScrollMode);
+    localStorage.setItem('boxesApplyOnlyToDesktop', String(applyOnlyToDesktop));
+    setShowDisplaySettings(false);
+  };
+
+  const handleCancelSettings = () => {
+    setGridColumns(Number(localStorage.getItem('boxesGridColumns')) || 2);
+    setGridRows(Number(localStorage.getItem('boxesGridRows')) || 20);
+    setListRows(Number(localStorage.getItem('boxesListRows')) || 20);
+    setListColumns(Number(localStorage.getItem('boxesListColumns')) || 1);
+    setListScrollMode(localStorage.getItem('boxesListScrollMode') as 'vertical' | 'horizontal' || 'vertical');
+    setApplyOnlyToDesktop(localStorage.getItem('boxesApplyOnlyToDesktop') === 'true');
+    setShowDisplaySettings(false);
+  };
 
   useEffect(() => {
     const handleResize = () => setIsDesktop(window.innerWidth > 768);
@@ -231,7 +252,7 @@ const Home = () => {
           gridTemplateColumns: viewType === 'grid' 
             ? `repeat(${(!isDesktop && applyOnlyToDesktop) ? 2 : gridColumns}, 1fr)` 
             : (listScrollMode === 'vertical' 
-                ? 'repeat(1, 1fr)' 
+                ? `repeat(${(!isDesktop && applyOnlyToDesktop) ? 1 : listColumns}, 1fr)` 
                 : 'none'),
           gridTemplateRows: viewType === 'list' && listScrollMode === 'horizontal'
             ? `repeat(${listRows}, auto)`
@@ -459,75 +480,60 @@ const Home = () => {
       </Link>
 
       {showDisplaySettings && (
-        <div className="modal-overlay">
-          <div className="modal-content display-settings-modal">
-            <div className="modal-header">
+        <div className="action-sheet-overlay" onClick={handleCancelSettings}>
+          <div className="action-sheet" onClick={e => e.stopPropagation()}>
+            <div className="action-sheet-header">
               <h3>Display Settings</h3>
-              <button className="close-btn" onClick={() => setShowDisplaySettings(false)}>
-                <X size={24} />
-              </button>
+              <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px'}}>
+                Customize your box view layout.
+              </p>
             </div>
-            
-            <div className="modal-body">
-              <div className="form-group" style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span>Grid Columns</span>
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
-                  <button 
-                    className="stepper-btn" 
-                    onClick={() => {
-                      const val = Math.max(1, gridColumns - 1);
-                      setGridColumns(val);
-                      localStorage.setItem('boxesGridColumns', String(val));
-                    }}
-                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-                  >
-                    <Minus size={20} />
-                  </button>
-                  <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{gridColumns}</span>
-                  <button 
-                    className="stepper-btn" 
-                    onClick={() => {
-                      const val = Math.min(6, gridColumns + 1);
-                      setGridColumns(val);
-                      localStorage.setItem('boxesGridColumns', String(val));
-                    }}
-                    style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-                  >
-                    <Plus size={20} />
-                  </button>
+            <div className="action-sheet-options" style={{ padding: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ display: 'block', marginBottom: '12px' }}>
+                    <span>Grid Columns</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setGridColumns(Math.max(1, gridColumns - 1))}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '30px', textAlign: 'center' }}>{gridColumns}</span>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setGridColumns(Math.min(6, gridColumns + 1))}
+                      style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="form-group" style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span>Grid Rows (Max)</span>
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
-                  <button 
-                    className="stepper-btn" 
-                    onClick={() => {
-                      const val = Math.max(1, gridRows - 1);
-                      setGridRows(val);
-                      localStorage.setItem('boxesGridRows', String(val));
-                    }}
-                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-                  >
-                    <Minus size={20} />
-                  </button>
-                  <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{gridRows}</span>
-                  <button 
-                    className="stepper-btn" 
-                    onClick={() => {
-                      const val = Math.min(100, gridRows + 1);
-                      setGridRows(val);
-                      localStorage.setItem('boxesGridRows', String(val));
-                    }}
-                    style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-                  >
-                    <Plus size={20} />
-                  </button>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ display: 'block', marginBottom: '12px' }}>
+                    <span>Grid Rows (Max)</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setGridRows(Math.max(1, gridRows - 1))}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '30px', textAlign: 'center' }}>{gridRows}</span>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setGridRows(Math.min(100, gridRows + 1))}
+                      style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -538,20 +544,14 @@ const Home = () => {
                 <div style={{ display: 'flex', background: 'var(--surface-hover)', padding: '4px', borderRadius: '12px', gap: '4px' }}>
                   <button 
                     className={`view-toggle-btn ${listScrollMode === 'vertical' ? 'active' : ''}`}
-                    onClick={() => {
-                      setListScrollMode('vertical');
-                      localStorage.setItem('boxesListScrollMode', 'vertical');
-                    }}
+                    onClick={() => setListScrollMode('vertical')}
                     style={{ flex: 1, padding: '10px' }}
                   >
                     Vertical
                   </button>
                   <button 
                     className={`view-toggle-btn ${listScrollMode === 'horizontal' ? 'active' : ''}`}
-                    onClick={() => {
-                      setListScrollMode('horizontal');
-                      localStorage.setItem('boxesListScrollMode', 'horizontal');
-                    }}
+                    onClick={() => setListScrollMode('horizontal')}
                     style={{ flex: 1, padding: '10px' }}
                   >
                     Horizontal
@@ -567,11 +567,7 @@ const Home = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
                     <button 
                       className="stepper-btn" 
-                      onClick={() => {
-                        const val = Math.max(1, listRows - 1);
-                        setListRows(val);
-                        localStorage.setItem('boxesListRows', String(val));
-                      }}
+                      onClick={() => setListRows(Math.max(1, listRows - 1))}
                       style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
                     >
                       <Minus size={20} />
@@ -579,11 +575,7 @@ const Home = () => {
                     <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{listRows}</span>
                     <button 
                       className="stepper-btn" 
-                      onClick={() => {
-                        const val = Math.min(10, listRows + 1);
-                        setListRows(val);
-                        localStorage.setItem('boxesListRows', String(val));
-                      }}
+                      onClick={() => setListRows(Math.min(10, listRows + 1))}
                       style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
                     >
                       <Plus size={20} />
@@ -592,21 +584,99 @@ const Home = () => {
                 </div>
               )}
 
-              <div className="form-group" style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }} onClick={() => {
-                const val = !applyOnlyToDesktop;
-                setApplyOnlyToDesktop(val);
-                localStorage.setItem('boxesApplyOnlyToDesktop', String(val));
-              }}>
-                <div className={`checkbox-custom ${applyOnlyToDesktop ? 'checked' : ''}`}>
-                  {applyOnlyToDesktop && <CheckCircle2 size={16} color="white" />}
+              {listScrollMode === 'vertical' && (
+                <div className="form-group" style={{ marginBottom: '24px' }}>
+                  <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <span>List Columns</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setListColumns(Math.max(1, listColumns - 1))}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{listColumns}</span>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setListColumns(Math.min(6, listColumns + 1))}
+                      style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
                 </div>
-                <span style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>Apply only to Web (Desktop)</span>
+              )}
+
+              <div 
+                className="toggle-wrapper" 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  marginBottom: '20px', 
+                  cursor: 'pointer',
+                  padding: '12px 16px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-color)',
+                  transition: 'background-color 0.2s'
+                }} 
+                onClick={() => setApplyOnlyToDesktop(!applyOnlyToDesktop)}
+              >
+                <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  Apply only to Web (Desktop)
+                </span>
+                
+                {/* Custom Premium Sliding Switch Toggle */}
+                <div style={{
+                  width: '46px',
+                  height: '26px',
+                  borderRadius: '100px',
+                  backgroundColor: applyOnlyToDesktop ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.08)',
+                  padding: '3px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  transition: 'background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.4)',
+                  flexShrink: 0
+                }}>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ffffff',
+                    transform: applyOnlyToDesktop ? 'translateX(20px)' : 'translateX(0)',
+                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.4)'
+                  }} />
+                </div>
               </div>
-            </div>
-            
-            <div className="modal-actions">
-              <button className="modal-btn-primary" onClick={() => setShowDisplaySettings(false)}>
-                Done
+
+              <button className="submit-btn" style={{ width: '100%', marginTop: '20px' }} onClick={handleSaveSettings}>
+                Save
+              </button>
+              
+              <button 
+                type="button" 
+                className="option-btn" 
+                style={{ 
+                  width: '100%', 
+                  marginTop: '12px', 
+                  padding: '16px', 
+                  borderRadius: '16px', 
+                  border: 'none', 
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)', 
+                  color: 'var(--text-secondary)', 
+                  fontSize: '16px', 
+                  fontWeight: 600, 
+                  cursor: 'pointer' 
+                }} 
+                onClick={handleCancelSettings}
+              >
+                Cancel
               </button>
             </div>
           </div>

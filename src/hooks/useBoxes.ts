@@ -195,5 +195,43 @@ export const useBoxes = () => {
     }
   };
 
-  return { boxes, trashBoxes, loading, createBox, updateBox, deleteBox, restoreBox, deleteBoxPermanently, migrateBoxToNumeric };
+  const migrateBoxToCustomId = async (oldId: string, newId: string, updates: Partial<Box> = {}) => {
+    if (!user) throw new Error("User not authenticated");
+
+    try {
+      const newDocRef = doc(db, "boxes", newId);
+      const newDocSnap = await getDoc(newDocRef);
+      if (newDocSnap.exists()) {
+        throw new Error("This QR Code is already assigned to another box!");
+      }
+
+      const oldDocRef = doc(db, "boxes", oldId);
+      const oldDocSnap = await getDoc(oldDocRef);
+      if (!oldDocSnap.exists()) throw new Error("Old box not found");
+      const oldData = oldDocSnap.data();
+
+      await setDoc(newDocRef, {
+        ...oldData,
+        ...updates,
+        inTrash: false,
+        hasQRCode: true,
+        updatedAt: serverTimestamp(),
+      });
+
+      const itemsQuery = query(collection(db, "items"), where("boxId", "==", oldId));
+      const itemsSnapshot = await getDocs(itemsQuery);
+      await Promise.all(itemsSnapshot.docs.map(itemDoc => 
+        setDoc(itemDoc.ref, { boxId: newId }, { merge: true })
+      ));
+
+      await deleteDoc(oldDocRef);
+
+      return newId;
+    } catch (err) {
+      console.error("Migration to custom ID failed:", err);
+      throw err;
+    }
+  };
+
+  return { boxes, trashBoxes, loading, createBox, updateBox, deleteBox, restoreBox, deleteBoxPermanently, migrateBoxToNumeric, migrateBoxToCustomId };
 };

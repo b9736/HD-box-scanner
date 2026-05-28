@@ -1373,6 +1373,7 @@ const BoxDetail = () => {
           title={box.name} 
           qrId={box.id}
           onClose={() => setShowQRModal(false)} 
+          onAssignQRSuccess={(newId) => navigate(`/box/${newId}`, { replace: true })}
         />
       )}
 
