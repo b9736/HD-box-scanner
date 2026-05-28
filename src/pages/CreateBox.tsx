@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, X } from 'lucide-react';
+import { ArrowLeft, Check } from 'lucide-react';
 import { useBoxes } from '../hooks/useBoxes';
 
 const CreateBox = () => {
@@ -8,21 +8,8 @@ const CreateBox = () => {
   const { createBox } = useBoxes();
   const [name, setName] = useState('');
   const [room, setRoom] = useState('');
-  const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState<string[]>([]);
   const [hasQRCode, setHasQRCode] = useState(false);
   const [saving, setSaving] = useState(false);
-
-  const handleAddTag = () => {
-    if (tagInput && !tags.includes(tagInput)) {
-      setTags([...tags, tagInput.startsWith('#') ? tagInput : `#${tagInput}`]);
-      setTagInput('');
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setTags(tags.filter(t => t !== tagToRemove));
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +17,7 @@ const CreateBox = () => {
 
     setSaving(true);
     try {
-      const newId = await createBox(name, room, tags, hasQRCode);
+      const newId = await createBox(name, room, [], hasQRCode);
       navigate(`/box/${newId}`);
     } catch (err) {
       console.error(err);
@@ -77,30 +64,6 @@ const CreateBox = () => {
           />
         </div>
 
-        <div className="form-group">
-          <label>Tags</label>
-          <div className="tag-input-wrapper">
-            <input 
-              type="text" 
-              placeholder="Add tag (press Enter)" 
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
-            />
-            <button type="button" onClick={handleAddTag} className="add-tag-btn">
-              <Plus size={20} />
-            </button>
-          </div>
-          <div className="tags-display">
-            {tags.map(tag => (
-              <span key={tag} className="tag-pill">
-                {tag}
-                <X size={12} onClick={() => removeTag(tag)} />
-              </span>
-            ))}
-          </div>
-        </div>
-
         <div className="form-group" style={{ marginTop: '12px' }}>
           <label className="checkbox-label" style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}>
             <div 
@@ -109,16 +72,15 @@ const CreateBox = () => {
                 height: '24px', 
                 borderRadius: '6px', 
                 border: '2px solid var(--border-color)',
-                backgroundColor: hasQRCode ? 'var(--primary-color)' : 'transparent',
-                borderColor: hasQRCode ? 'var(--primary-color)' : 'var(--border-color)',
+                backgroundColor: hasQRCode ? 'var(--success-color)' : 'transparent',
+                borderColor: hasQRCode ? 'var(--success-color)' : 'var(--border-color)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 transition: 'all 0.2s'
               }}
-              onClick={() => setHasQRCode(!hasQRCode)}
             >
-              {hasQRCode && <Plus size={16} color="white" style={{ transform: 'rotate(45deg)' }} />}
+              {hasQRCode && <Check size={16} color="white" />}
             </div>
             <span style={{ fontSize: '15px', color: 'var(--text-primary)' }}>Create QR code for this box</span>
             <input 
