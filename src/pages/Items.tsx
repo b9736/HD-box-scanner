@@ -24,6 +24,7 @@ const ItemsPage = () => {
   const [gridColumns, setGridColumns] = useState<number>(Number(localStorage.getItem('itemsGridColumns')) || 2);
   const [gridRows, setGridRows] = useState<number>(Number(localStorage.getItem('itemsGridRows')) || 20);
   const [listRows, setListRows] = useState<number>(Number(localStorage.getItem('itemsListRows')) || 20);
+  const [listColumns, setListColumns] = useState<number>(Number(localStorage.getItem('itemsListColumns')) || 1);
   const [listScrollMode, setListScrollMode] = useState<'vertical' | 'horizontal'>(localStorage.getItem('listScrollMode') as 'vertical' | 'horizontal' || 'horizontal');
   const [applyOnlyToDesktop, setApplyOnlyToDesktop] = useState<boolean>(localStorage.getItem('applyOnlyToDesktop') === 'true');
   const [showDisplaySettings, setShowDisplaySettings] = useState(false);
@@ -112,7 +113,9 @@ const ItemsPage = () => {
         data.images, 
         data.receipts,
         data.purchaseDate,
-        data.warrantyExpire
+        data.warrantyExpire,
+        '', // groupName placeholder
+        data.room
       );
       setIsAddingItem(false);
       setTempAddImages([]);
@@ -259,9 +262,25 @@ const ItemsPage = () => {
     setBatchModal(null);
   };
 
+  const handleSaveSettings = () => {
+    localStorage.setItem('itemsGridColumns', String(gridColumns));
+    localStorage.setItem('itemsGridRows', String(gridRows));
+    localStorage.setItem('itemsListRows', String(listRows));
+    localStorage.setItem('itemsListColumns', String(listColumns));
+    localStorage.setItem('listScrollMode', listScrollMode);
+    localStorage.setItem('applyOnlyToDesktop', String(applyOnlyToDesktop));
+    setShowDisplaySettings(false);
+  };
 
-
-
+  const handleCancelSettings = () => {
+    setGridColumns(Number(localStorage.getItem('itemsGridColumns')) || 2);
+    setGridRows(Number(localStorage.getItem('itemsGridRows')) || 20);
+    setListRows(Number(localStorage.getItem('itemsListRows')) || 20);
+    setListColumns(Number(localStorage.getItem('itemsListColumns')) || 1);
+    setListScrollMode(localStorage.getItem('listScrollMode') as 'vertical' | 'horizontal' || 'horizontal');
+    setApplyOnlyToDesktop(localStorage.getItem('applyOnlyToDesktop') === 'true');
+    setShowDisplaySettings(false);
+  };
 
   return (
     <div className="page-content">
@@ -421,7 +440,7 @@ const ItemsPage = () => {
               gridTemplateColumns: viewType === 'grid' 
                 ? `repeat(${(!isDesktop && applyOnlyToDesktop) ? 2 : gridColumns}, 1fr)` 
                 : (listScrollMode === 'vertical' 
-                    ? 'repeat(1, 1fr)' 
+                    ? `repeat(${(!isDesktop && applyOnlyToDesktop) ? 1 : listColumns}, 1fr)` 
                     : 'none'),
               gridTemplateRows: viewType === 'list' && listScrollMode === 'horizontal'
                 ? `repeat(${listRows}, auto)`
@@ -468,14 +487,39 @@ const ItemsPage = () => {
                       )}
                       <div className="item-list-info">
                         <span className="item-list-name">{item.name}</span>
-                        <span className="item-list-box">{box?.name || 'Unknown Box'}</span>
+                        <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                          {box && (
+                            <span className="item-list-box">{box.name}</span>
+                          )}
+                          {(item.room || box?.room) && (
+                            <span className="item-list-box">Location: {item.room || box?.room}</span>
+                          )}
+                          {warranty && (
+                            <span style={{
+                              backgroundColor: 'var(--surface-hover)',
+                              color: warranty.color,
+                              border: '1px solid var(--border-color)',
+                              padding: '3px 8px',
+                              borderRadius: '8px',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              marginTop: '4px',
+                              marginBottom: '4px',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {warranty.isExpired ? 'Warranty: Expired' : `Warranty: ${warranty.text}`}
+                            </span>
+                          )}
+                        </div>
                         {item.tags && item.tags.length > 0 && (
                           <div className="item-card-tags" style={{ marginTop: '4px', justifyContent: 'flex-start' }}>
                             {item.tags.map(tag => {
                               const colors = getTagColor(tag);
                               return (
                                 <span key={tag} className="item-tag-pill" style={{ backgroundColor: colors.bg, color: colors.text }}>
-                                  {tag}
+                                    {tag}
                                 </span>
                               );
                             })}
@@ -486,11 +530,6 @@ const ItemsPage = () => {
                     <div className="item-list-right">
                       {item.quantity > 1 && (
                         <span className="item-list-qty">{item.quantity}x</span>
-                      )}
-                      {warranty && (
-                        <span className="warranty-tag-mini" style={{ color: warranty.color }}>
-                          {warranty.isExpired ? 'Expired' : warranty.text}
-                        </span>
                       )}
                       <ChevronRight size={18} className="item-card-arrow" />
                     </div>
@@ -525,9 +564,18 @@ const ItemsPage = () => {
                   <div className="item-card-content">
                     <div className="item-card-main">
                       <h3 className="item-card-name">{item.name}</h3>
-                      <div className="item-card-box-info">
-                        <Package size={12} />
-                        <span>{box?.name || 'Unknown Box'}</span>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', marginTop: '4px' }}>
+                        {box && (
+                          <div className="item-card-box-info" style={{ margin: 0 }}>
+                            <Package size={12} />
+                            <span>{box.name}</span>
+                          </div>
+                        )}
+                        {(item.room || box?.room) && (
+                          <div className="item-card-box-info" style={{ margin: 0 }}>
+                            <span>Location: {item.room || box?.room}</span>
+                          </div>
+                        )}
                       </div>
                       {item.tags && item.tags.length > 0 && (
                         <div className="item-card-tags">
@@ -791,11 +839,10 @@ const ItemsPage = () => {
               </div>
             </div>
           </div>
-
-      )}
+        )}
 
       {showDisplaySettings && (
-        <div className="action-sheet-overlay" onClick={() => setShowDisplaySettings(false)}>
+        <div className="action-sheet-overlay" onClick={handleCancelSettings}>
           <div className="action-sheet" onClick={e => e.stopPropagation()}>
             <div className="action-sheet-header">
               <h3>Display Settings</h3>
@@ -804,65 +851,51 @@ const ItemsPage = () => {
               </p>
             </div>
             <div className="action-sheet-options" style={{ padding: '20px' }}>
-              <div className="form-group" style={{ marginBottom: '20px' }}>
-                <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span>Grid Columns</span>
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
-                  <button 
-                    className="stepper-btn" 
-                    onClick={() => {
-                      const val = Math.max(1, gridColumns - 1);
-                      setGridColumns(val);
-                      localStorage.setItem('itemsGridColumns', String(val));
-                    }}
-                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-                  >
-                    <Minus size={20} />
-                  </button>
-                  <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{gridColumns}</span>
-                  <button 
-                    className="stepper-btn" 
-                    onClick={() => {
-                      const val = Math.min(6, gridColumns + 1);
-                      setGridColumns(val);
-                      localStorage.setItem('itemsGridColumns', String(val));
-                    }}
-                    style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-                  >
-                    <Plus size={20} />
-                  </button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ display: 'block', marginBottom: '12px' }}>
+                    <span>Grid Columns</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setGridColumns(Math.max(1, gridColumns - 1))}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '30px', textAlign: 'center' }}>{gridColumns}</span>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setGridColumns(Math.min(6, gridColumns + 1))}
+                      style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div className="form-group" style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
-                  <span>Grid Rows (Max)</span>
-                </label>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
-                  <button 
-                    className="stepper-btn" 
-                    onClick={() => {
-                      const val = Math.max(1, gridRows - 1);
-                      setGridRows(val);
-                      localStorage.setItem('itemsGridRows', String(val));
-                    }}
-                    style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-                  >
-                    <Minus size={20} />
-                  </button>
-                  <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{gridRows}</span>
-                  <button 
-                    className="stepper-btn" 
-                    onClick={() => {
-                      const val = Math.min(100, gridRows + 1);
-                      setGridRows(val);
-                      localStorage.setItem('itemsGridRows', String(val));
-                    }}
-                    style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-                  >
-                    <Plus size={20} />
-                  </button>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ display: 'block', marginBottom: '12px' }}>
+                    <span>Grid Rows (Max)</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setGridRows(Math.max(1, gridRows - 1))}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '30px', textAlign: 'center' }}>{gridRows}</span>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setGridRows(Math.min(100, gridRows + 1))}
+                      style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -873,20 +906,14 @@ const ItemsPage = () => {
                 <div style={{ display: 'flex', background: 'var(--surface-hover)', padding: '4px', borderRadius: '12px', gap: '4px' }}>
                   <button 
                     className={`view-toggle-btn ${listScrollMode === 'vertical' ? 'active' : ''}`}
-                    onClick={() => {
-                      setListScrollMode('vertical');
-                      localStorage.setItem('listScrollMode', 'vertical');
-                    }}
+                    onClick={() => setListScrollMode('vertical')}
                     style={{ flex: 1, padding: '10px' }}
                   >
                     Vertical
                   </button>
                   <button 
                     className={`view-toggle-btn ${listScrollMode === 'horizontal' ? 'active' : ''}`}
-                    onClick={() => {
-                      setListScrollMode('horizontal');
-                      localStorage.setItem('listScrollMode', 'horizontal');
-                    }}
+                    onClick={() => setListScrollMode('horizontal')}
                     style={{ flex: 1, padding: '10px' }}
                   >
                     Horizontal
@@ -902,11 +929,7 @@ const ItemsPage = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
                     <button 
                       className="stepper-btn" 
-                      onClick={() => {
-                        const val = Math.max(1, listRows - 1);
-                        setListRows(val);
-                        localStorage.setItem('itemsListRows', String(val));
-                      }}
+                      onClick={() => setListRows(Math.max(1, listRows - 1))}
                       style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
                     >
                       <Minus size={20} />
@@ -914,11 +937,32 @@ const ItemsPage = () => {
                     <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{listRows}</span>
                     <button 
                       className="stepper-btn" 
-                      onClick={() => {
-                        const val = Math.min(10, listRows + 1);
-                        setListRows(val);
-                        localStorage.setItem('itemsListRows', String(val));
-                      }}
+                      onClick={() => setListRows(Math.min(10, listRows + 1))}
+                      style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {listScrollMode === 'vertical' && (
+                <div className="form-group" style={{ marginBottom: '24px' }}>
+                  <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <span>List Columns</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setListColumns(Math.max(1, listColumns - 1))}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{listColumns}</span>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setListColumns(Math.min(6, listColumns + 1))}
                       style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
                     >
                       <Plus size={20} />
@@ -941,11 +985,7 @@ const ItemsPage = () => {
                   border: '1px solid var(--border-color)',
                   transition: 'background-color 0.2s'
                 }} 
-                onClick={() => {
-                  const val = !applyOnlyToDesktop;
-                  setApplyOnlyToDesktop(val);
-                  localStorage.setItem('applyOnlyToDesktop', String(val));
-                }}
+                onClick={() => setApplyOnlyToDesktop(!applyOnlyToDesktop)}
               >
                 <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>
                   Apply only to Web (Desktop)
@@ -977,8 +1017,28 @@ const ItemsPage = () => {
                 </div>
               </div>
 
-              <button className="submit-btn" style={{ width: '100%', marginTop: '20px' }} onClick={() => setShowDisplaySettings(false)}>
+              <button className="submit-btn" style={{ width: '100%', marginTop: '20px' }} onClick={handleSaveSettings}>
                 Save
+              </button>
+              
+              <button 
+                type="button"
+                className="option-btn" 
+                style={{ 
+                  width: '100%', 
+                  marginTop: '12px', 
+                  padding: '16px', 
+                  borderRadius: '16px', 
+                  border: 'none', 
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)', 
+                  color: 'var(--text-secondary)', 
+                  fontSize: '16px', 
+                  fontWeight: 600, 
+                  cursor: 'pointer' 
+                }} 
+                onClick={handleCancelSettings}
+              >
+                Cancel
               </button>
             </div>
           </div>

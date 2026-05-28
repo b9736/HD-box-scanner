@@ -301,9 +301,35 @@ const Home = () => {
                         {box.name}
                         <span className="box-item-count">({allItems.filter(i => i.boxId === box.id).length})</span>
                       </div>
-                      <div className="box-row-meta">
-                        Location: {box.room || 'No Room'}
-                        {box.hasQRCode && ` • QR ID: ${box.id}`}
+                      <div className="box-row-meta" style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '6px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                        <span style={{
+                          backgroundColor: 'var(--surface-hover)',
+                          color: '#ffffff',
+                          border: '1px solid var(--border-color)',
+                          padding: '3px 8px',
+                          borderRadius: '8px',
+                          fontSize: '11px',
+                          fontWeight: 600,
+                          display: 'inline-flex',
+                          alignItems: 'center'
+                        }}>
+                          Location: {box.room || 'No Room'}
+                        </span>
+                        {box.hasQRCode && (
+                          <span style={{
+                            backgroundColor: 'var(--surface-hover)',
+                            color: '#ffffff',
+                            border: '1px solid var(--border-color)',
+                            padding: '3px 8px',
+                            borderRadius: '8px',
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}>
+                            QR ID: {box.id}
+                          </span>
+                        )}
                       </div>
                       <div className="box-row-preview">
                         {allItems.filter(i => i.boxId === box.id).slice(0, 3).map(i => i.name).join(', ') || 'Empty Box'}

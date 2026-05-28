@@ -17,6 +17,7 @@ export interface Item {
   warrantyExpire?: string;
   description?: string;
   tags?: string[];
+  room?: string;
   uid: string;
   createdAt?: any;
 }
@@ -81,7 +82,8 @@ export const useItems = (boxId?: string) => {
     receipts: string[] = [],
     purchaseDate: string = '',
     warrantyExpire: string = '',
-    groupName: string = ''
+    groupName: string = '',
+    room: string = ''
   ) => {
     if (!user) throw new Error("User not authenticated");
 
@@ -99,6 +101,7 @@ export const useItems = (boxId?: string) => {
         receiptUrl: receipts[0] || '',
         purchaseDate,
         warrantyExpire,
+        room: room || '',
         uid: user.uid,
         createdAt: serverTimestamp(),
       });

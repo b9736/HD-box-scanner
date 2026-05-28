@@ -84,6 +84,24 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   const [isCreatingBox, setIsCreatingBox] = useState(false);
   const { createBox } = useBoxes();
 
+  const [room, setRoom] = useState(item.room || '');
+  const [showAddNewRoomInput, setShowAddNewRoomInput] = useState(false);
+  const [newRoomInput, setNewRoomInput] = useState('');
+  const [localRooms, setLocalRooms] = useState<string[]>([]);
+
+  const existingRooms = React.useMemo(() => {
+    return Array.from(new Set(boxes.map(b => b.room).filter(Boolean))).sort();
+  }, [boxes]);
+
+  const renderedRooms = React.useMemo(() => {
+    const union = new Set<string>(existingRooms);
+    localRooms.forEach(r => union.add(r));
+    if (room) {
+      union.add(room);
+    }
+    return Array.from(union).sort();
+  }, [existingRooms, localRooms, room]);
+
   const { items: allItems } = useItems();
   const globalGroups = React.useMemo(() => {
     const groupsSet = new Set<string>();
@@ -159,6 +177,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
     description !== (item.description || '') ||
     (groupName || '') !== (item.groupName || '') ||
     selectedBoxId !== (item.boxId || '') ||
+    room !== (item.room || '') ||
     JSON.stringify([...selectedTags].sort()) !== JSON.stringify([...(item.tags || [])].sort()) ||
     tagInput !== '';
 
@@ -233,7 +252,8 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
         receiptUrl,
         images: newImages,
         groupName: groupName.trim(),
-        boxId: selectedBoxId
+        boxId: selectedBoxId,
+        room: room || ''
       });
       handleClose();
     } catch (err) {
@@ -477,6 +497,67 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
               </div>
             </div>
           )}
+
+          <div className="form-group">
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>Location (Optional)</label>
+            {!showAddNewRoomInput ? (
+              <select 
+                value={room} 
+                onChange={e => {
+                  if (e.target.value === 'add-new-room') {
+                    setShowAddNewRoomInput(true);
+                    setNewRoomInput('');
+                  } else {
+                    setRoom(e.target.value);
+                  }
+                }} 
+                className="premium-select"
+              >
+                <option value="">Unassigned</option>
+                {renderedRooms.map(r => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+                <option value="add-new-room" style={{ color: 'var(--primary-color)', fontWeight: 600 }}>+ Add New Location...</option>
+              </select>
+            ) : (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input 
+                  type="text" 
+                  value={newRoomInput} 
+                  onChange={e => setNewRoomInput(e.target.value)} 
+                  placeholder="Enter new location name"
+                  className="premium-input"
+                  style={{ flex: 1, margin: 0, width: '100%', minWidth: '150px' }}
+                  autoFocus
+                />
+                <button 
+                  type="button" 
+                  className="submit-btn" 
+                  style={{ padding: '8px 16px', height: '100%', fontSize: '13px' }}
+                  onClick={() => {
+                    const trimmed = newRoomInput.trim();
+                    if (trimmed) {
+                      if (!localRooms.includes(trimmed)) {
+                        setLocalRooms(prev => [...prev, trimmed]);
+                      }
+                      setRoom(trimmed);
+                      setShowAddNewRoomInput(false);
+                    }
+                  }}
+                >
+                  Done
+                </button>
+                <button 
+                  type="button" 
+                  className="cancel-btn" 
+                  style={{ padding: '8px 16px', height: '100%', fontSize: '13px', margin: 0 }}
+                  onClick={() => setShowAddNewRoomInput(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="form-group">
             <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>Group</label>
@@ -775,6 +856,24 @@ export const ItemAddModal: React.FC<ItemAddModalProps> = ({
   const [saving, setSaving] = useState(false);
   const { tags: allAvailableTags } = useItemTags();
 
+  const [room, setRoom] = useState('');
+  const [showAddNewRoomInput, setShowAddNewRoomInput] = useState(false);
+  const [newRoomInput, setNewRoomInput] = useState('');
+  const [localRooms, setLocalRooms] = useState<string[]>([]);
+
+  const existingRooms = React.useMemo(() => {
+    return Array.from(new Set(boxes.map(b => b.room).filter(Boolean))).sort();
+  }, [boxes]);
+
+  const renderedRooms = React.useMemo(() => {
+    const union = new Set<string>(existingRooms);
+    localRooms.forEach(r => union.add(r));
+    if (room) {
+      union.add(room);
+    }
+    return Array.from(union).sort();
+  }, [existingRooms, localRooms, room]);
+
   const handleDragOver = (e: React.DragEvent, type: 'item' | 'receipt') => {
     e.preventDefault();
     setDragType(type);
@@ -831,7 +930,8 @@ export const ItemAddModal: React.FC<ItemAddModalProps> = ({
         tags: finalTags,
         boxId: selectedBoxId,
         images: tempImages,
-        receipts: tempReceipts
+        receipts: tempReceipts,
+        room: room || ''
       });
       handleClose();
     } catch (err) {
@@ -928,6 +1028,67 @@ export const ItemAddModal: React.FC<ItemAddModalProps> = ({
                 ))}
               </select>
             </div>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600 }}>Location (Optional)</label>
+            {!showAddNewRoomInput ? (
+              <select 
+                value={room} 
+                onChange={e => {
+                  if (e.target.value === 'add-new-room') {
+                    setShowAddNewRoomInput(true);
+                    setNewRoomInput('');
+                  } else {
+                    setRoom(e.target.value);
+                  }
+                }} 
+                className="premium-select"
+              >
+                <option value="">Unassigned</option>
+                {renderedRooms.map(r => (
+                  <option key={r} value={r}>{r}</option>
+                ))}
+                <option value="add-new-room" style={{ color: 'var(--primary-color)', fontWeight: 600 }}>+ Add New Location...</option>
+              </select>
+            ) : (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input 
+                  type="text" 
+                  value={newRoomInput} 
+                  onChange={e => setNewRoomInput(e.target.value)} 
+                  placeholder="Enter new location name"
+                  className="premium-input"
+                  style={{ flex: 1, margin: 0, width: '100%', minWidth: '150px' }}
+                  autoFocus
+                />
+                <button 
+                  type="button" 
+                  className="submit-btn" 
+                  style={{ padding: '8px 16px', height: '100%', fontSize: '13px' }}
+                  onClick={() => {
+                    const trimmed = newRoomInput.trim();
+                    if (trimmed) {
+                      if (!localRooms.includes(trimmed)) {
+                        setLocalRooms(prev => [...prev, trimmed]);
+                      }
+                      setRoom(trimmed);
+                      setShowAddNewRoomInput(false);
+                    }
+                  }}
+                >
+                  Done
+                </button>
+                <button 
+                  type="button" 
+                  className="cancel-btn" 
+                  style={{ padding: '8px 16px', height: '100%', fontSize: '13px', margin: 0 }}
+                  onClick={() => setShowAddNewRoomInput(false)}
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
 
           <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
