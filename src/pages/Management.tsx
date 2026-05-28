@@ -26,8 +26,6 @@ export const ManagementPage = () => {
   const [activeTab, setActiveTab] = useState<ActiveTab>('locations');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Tag Creation State
-  const [newTagName, setNewTagName] = useState('');
 
   // Add Bottom Sheet States
   const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
@@ -189,16 +187,6 @@ export const ManagementPage = () => {
     }
   };
 
-  const handleAddNewTag = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTagName.trim()) return;
-    try {
-      await addTag(newTagName.trim());
-      setNewTagName('');
-    } catch (err) {
-      console.error("Failed to add new tag:", err);
-    }
-  };
 
   // --- FAB BOTTOM SHEET HANDLERS ---
   const handleOpenAddSheet = () => {
@@ -366,48 +354,7 @@ export const ManagementPage = () => {
         </div>
       </div>
 
-      {/* Quick Add Tag Bar */}
-      {activeTab === 'tags' && (
-        <form onSubmit={handleAddNewTag} style={{
-          display: 'flex',
-          gap: '12px',
-          marginBottom: '20px',
-          background: 'var(--surface-color)',
-          padding: '12px',
-          borderRadius: '16px',
-          border: '1px solid var(--border-color)'
-        }}>
-          <input
-            type="search"
-            placeholder="Add new global tag..."
-            value={newTagName}
-            onChange={(e) => setNewTagName(e.target.value)}
-            style={{
-              flex: 1,
-              background: 'rgba(255,255,255,0.03)',
-              border: '1px solid var(--border-color)',
-              borderRadius: '12px',
-              padding: '10px 14px',
-              color: '#fff',
-              fontSize: '14px'
-            }}
-            autoComplete="off"
-          />
-          <button type="submit" className="submit-btn" style={{
-            padding: '10px 18px',
-            borderRadius: '12px',
-            marginTop: 0,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '6px',
-            fontSize: '14px',
-            whiteSpace: 'nowrap'
-          }}>
-            <Plus size={16} />
-            <span>Add Tag</span>
-          </button>
-        </form>
-      )}
+
 
       {/* Tab Panels */}
       {isLoading ? (
