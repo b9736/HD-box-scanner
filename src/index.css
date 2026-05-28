@@ -1924,8 +1924,8 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 .modal-gallery-scroll {
   display: flex;
+  flex-wrap: wrap;
   gap: 12px;
-  overflow-x: auto;
   padding-bottom: 8px;
 }
 

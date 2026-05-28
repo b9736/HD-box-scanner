@@ -297,10 +297,10 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
         </div>
         
         <form onSubmit={handleSubmit} className="item-edit-form">
-          <div className="form-row-gallery" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
+          <div className="form-row-gallery" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
             <div 
               className={`gallery-section ${dragType === 'item' ? 'drag-active' : ''}`} 
-              style={{ flex: '1 1 200px', minWidth: '150px', marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: dragType === 'item' ? '2px dashed var(--primary-color)' : '2px dashed transparent', padding: '4px' }}
+              style={{ flex: 1, minWidth: 0, marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: dragType === 'item' ? '2px dashed var(--primary-color)' : '2px dashed transparent', padding: '4px' }}
               onDragOver={(e) => handleDragOver(e, 'item')}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, 'item')}
@@ -351,7 +351,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
 
             <div 
               className={`gallery-section ${dragType === 'receipt' ? 'drag-active' : ''}`} 
-              style={{ flex: '1 1 200px', minWidth: '150px', marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: dragType === 'receipt' ? '2px dashed var(--primary-color)' : '2px dashed transparent', padding: '4px' }}
+              style={{ flex: 1, minWidth: 0, marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: dragType === 'receipt' ? '2px dashed var(--primary-color)' : '2px dashed transparent', padding: '4px' }}
               onDragOver={(e) => handleDragOver(e, 'receipt')}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, 'receipt')}
@@ -962,10 +962,10 @@ export const ItemAddModal: React.FC<ItemAddModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="item-edit-form">
-          <div className="form-row-gallery" style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginBottom: '16px' }}>
+          <div className="form-row-gallery" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
             <div 
               className={`gallery-section ${dragType === 'item' ? 'drag-active' : ''}`} 
-              style={{ flex: '1 1 200px', minWidth: '150px', marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: dragType === 'item' ? '2px dashed var(--primary-color)' : '2px dashed transparent', padding: '4px' }}
+              style={{ flex: 1, minWidth: 0, marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: dragType === 'item' ? '2px dashed var(--primary-color)' : '2px dashed transparent', padding: '4px' }}
               onDragOver={(e) => handleDragOver(e, 'item')}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, 'item')}
@@ -988,7 +988,7 @@ export const ItemAddModal: React.FC<ItemAddModalProps> = ({
 
             <div 
               className={`gallery-section ${dragType === 'receipt' ? 'drag-active' : ''}`} 
-              style={{ flex: '1 1 200px', minWidth: '150px', marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: dragType === 'receipt' ? '2px dashed var(--primary-color)' : '2px dashed transparent', padding: '4px' }}
+              style={{ flex: 1, minWidth: 0, marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: dragType === 'receipt' ? '2px dashed var(--primary-color)' : '2px dashed transparent', padding: '4px' }}
               onDragOver={(e) => handleDragOver(e, 'receipt')}
               onDragLeave={handleDragLeave}
               onDrop={(e) => handleDrop(e, 'receipt')}
