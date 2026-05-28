@@ -17,11 +17,11 @@ export const useItemTags = () => {
     }
 
     let globalTags: string[] = [];
+    let itemCounts: Record<string, number> = {};
 
-    const updateCombinedTags = (counts: Record<string, number>) => {
-      const combined = new Set([...Object.keys(counts), ...globalTags]);
+    const updateCombinedTags = () => {
+      const combined = new Set([...Object.keys(itemCounts), ...globalTags]);
       setTags(Array.from(combined).sort());
-      setTagCounts(counts);
       setLoading(false);
     };
 
@@ -37,7 +37,9 @@ export const useItemTags = () => {
             });
           }
         });
-        updateCombinedTags(counts);
+        itemCounts = counts;
+        setTagCounts(counts);
+        updateCombinedTags();
       }
     );
 
@@ -50,9 +52,7 @@ export const useItemTags = () => {
           if (data.name) tagsSet.add(data.name);
         });
         globalTags = Array.from(tagsSet);
-        // We don't need to trigger a full update here if counts haven't changed, 
-        // but adding a new global tag should show up in the list with 0 count.
-        setTags(prev => Array.from(new Set([...prev, ...globalTags])).sort());
+        updateCombinedTags();
       }
     );
 

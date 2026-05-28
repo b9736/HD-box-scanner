@@ -115,12 +115,16 @@ const Settings = () => {
             <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div className="form-group">
                 <label>Duration</label>
-                <input 
-                  type="number" 
-                  value={warrantyValue} 
-                  onChange={(e) => setWarrantyValue(e.target.value)}
-                  style={{ width: '100%' }}
-                />
+                <div className="qty-stepper" style={{ width: '100%' }}>
+                  <button type="button" onClick={() => setWarrantyValue(prev => String(Math.max(1, (parseInt(prev) || 1) - 1)))} style={{ width: '44px' }}>-</button>
+                  <input 
+                    type="number" 
+                    value={warrantyValue} 
+                    onChange={(e) => setWarrantyValue(String(Math.max(1, parseInt(e.target.value) || 1)))}
+                    style={{ flex: 1, minWidth: 0 }}
+                  />
+                  <button type="button" onClick={() => setWarrantyValue(prev => String((parseInt(prev) || 1) + 1))} style={{ width: '44px' }}>+</button>
+                </div>
               </div>
               <div className="form-group">
                 <label>Unit</label>

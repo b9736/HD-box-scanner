@@ -1415,6 +1415,30 @@ const BoxDetail = () => {
 
             {addSheetMode === 'create' && (
               <form onSubmit={handleQuickCreate} className="quick-create-form" style={{ textAlign: 'left' }}>
+                <div className="form-group" style={{ marginBottom: '16px' }}>
+                  <button 
+                    type="button" 
+                    className="option-btn secondary" 
+                    onClick={() => setAddSheetMode('existing')} 
+                    style={{
+                      width: '100%', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      gap: '8px',
+                      margin: 0,
+                      backgroundColor: 'var(--surface-hover)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '12px',
+                      padding: '12px',
+                      fontSize: '14px',
+                      color: 'var(--text-secondary)'
+                    }}
+                  >
+                    <Search size={16} /> Search & Add Existing Item...
+                  </button>
+                </div>
+
                 <div className="form-group">
                   <label>Item Name</label>
                   <input 
@@ -1427,49 +1451,16 @@ const BoxDetail = () => {
                   />
                 </div>
                 
-                <div className="form-group" style={{ marginTop: '12px' }}>
+                 <div className="form-group" style={{ marginTop: '12px' }}>
                   <label>Quantity</label>
-                  <div className="quantity-stepper" style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    backgroundColor: 'var(--surface-hover)',
-                    borderRadius: '12px',
-                    overflow: 'hidden',
-                    width: 'fit-content'
-                  }}>
-                    <button type="button" onClick={() => setSheetQty(Math.max(1, sheetQty - 1))} style={{
-                      width: '40px',
-                      height: '40px',
-                      border: 'none',
-                      background: 'transparent',
-                      color: 'var(--text-primary)',
-                      fontSize: '18px',
-                      cursor: 'pointer'
-                    }}>-</button>
+                  <div className="qty-stepper">
+                    <button type="button" onClick={() => setSheetQty(Math.max(1, sheetQty - 1))}>-</button>
                     <input 
                       type="number" 
                       value={sheetQty} 
                       onChange={e => setSheetQty(Math.max(1, parseInt(e.target.value) || 1))} 
-                      style={{
-                        width: '40px',
-                        border: 'none',
-                        background: 'transparent',
-                        color: 'var(--text-primary)',
-                        textAlign: 'center',
-                        fontSize: '16px',
-                        outline: 'none',
-                        padding: 0
-                      }}
                     />
-                    <button type="button" onClick={() => setSheetQty(sheetQty + 1)} style={{
-                      width: '40px',
-                      height: '40px',
-                      border: 'none',
-                      background: 'transparent',
-                      color: 'var(--text-primary)',
-                      fontSize: '18px',
-                      cursor: 'pointer'
-                    }}>+</button>
+                    <button type="button" onClick={() => setSheetQty(sheetQty + 1)}>+</button>
                   </div>
                 </div>
 
@@ -1674,8 +1665,6 @@ const BoxDetail = () => {
                     display: 'flex',
                     flexWrap: 'wrap',
                     gap: '8px',
-                    maxHeight: '90px',
-                    overflowY: 'auto',
                     padding: '2px 0'
                   }}>
                     {allAvailableTags
@@ -1732,9 +1721,6 @@ const BoxDetail = () => {
                     Advanced Details...
                   </button>
                   
-                  <button type="button" className="option-btn secondary" onClick={() => setAddSheetMode('existing')} style={{width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}>
-                    <Search size={16} /> Search & Add Existing Item...
-                  </button>
                   <button type="button" className="option-btn secondary" onClick={handleCloseAddSheet} style={{backgroundColor: 'transparent', color: 'var(--text-secondary)', padding: '8px', width: '100%'}}>
                     Cancel
                   </button>

@@ -1018,7 +1018,11 @@ export const ItemAddModal: React.FC<ItemAddModalProps> = ({
           <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div className="form-group">
               <label>Quantity</label>
-              <input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} min="1" />
+              <div className="qty-stepper">
+                <button type="button" onClick={() => setQuantity(Math.max(1, quantity - 1))}>-</button>
+                <input type="number" value={quantity} onChange={e => setQuantity(Number(e.target.value))} min="1" />
+                <button type="button" onClick={() => setQuantity(quantity + 1)}>+</button>
+              </div>
             </div>
             <div className="form-group">
               <label>Select Box (Optional)</label>
