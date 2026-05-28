@@ -8,6 +8,7 @@ import { ConfirmationModal } from './ConfirmationModal';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useItems } from '../hooks/useItems';
 import { useBoxes } from '../hooks/useBoxes';
+import { useCustomData } from '../hooks/useCustomData';
 
 export const ImageSourceModal: React.FC<{onSelect: (s: 'camera' | 'gallery') => void, onClose: () => void}> = ({ onSelect, onClose }) => {
   const [isClosing, setIsClosing] = useState(false);
@@ -84,6 +85,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   const [newBoxRoom, setNewBoxRoom] = useState('');
   const [isCreatingBox, setIsCreatingBox] = useState(false);
   const { createBox } = useBoxes();
+  const { customLocations, customGroups } = useCustomData();
 
   const [room, setRoom] = useState(item.room || '');
   const [showAddNewRoomInput, setShowAddNewRoomInput] = useState(false);
@@ -97,11 +99,12 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   const renderedRooms = React.useMemo(() => {
     const union = new Set<string>(existingRooms);
     localRooms.forEach(r => union.add(r));
+    customLocations.forEach(cl => union.add(cl.name));
     if (room) {
       union.add(room);
     }
     return Array.from(union).sort();
-  }, [existingRooms, localRooms, room]);
+  }, [existingRooms, localRooms, customLocations, room]);
 
   const { items: allItems } = useItems();
   const globalGroups = React.useMemo(() => {
@@ -129,11 +132,13 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   const renderedGroups = React.useMemo(() => {
     const unionSet = new Set<string>(globalGroups);
     localCreatedGroups.forEach(g => unionSet.add(g));
+    customGroups.forEach(cg => unionSet.add(cg.name));
     if (groupName && groupName.trim() !== '') {
       unionSet.add(groupName.trim());
     }
     return Array.from(unionSet).sort();
-  }, [globalGroups, localCreatedGroups, groupName]);
+  }, [globalGroups, localCreatedGroups, customGroups, groupName]);
+
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -1405,7 +1410,8 @@ export const QRCodePreviewModal: React.FC<{
     if (canvas) {
       const url = canvas.toDataURL("image/png");
       const link = document.createElement('a');
-      link.download = `qr-${title.replace(/\s+/g, '-').toLowerCase()}.png`;
+      const boxId = qrId || value || '';
+      link.download = `qr-${title.replace(/\s+/g, '-').toLowerCase()}-ID-${boxId}.png`;
       link.href = url;
       link.click();
     }

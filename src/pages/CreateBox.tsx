@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Check } from 'lucide-react';
 import { useBoxes } from '../hooks/useBoxes';
+import { useCustomData } from '../hooks/useCustomData';
 
 const CreateBox = () => {
   const navigate = useNavigate();
   const { boxes, createBox } = useBoxes();
+  const { customLocations } = useCustomData();
   const [name, setName] = useState('');
   const [room, setRoom] = useState('');
   const [hasQRCode, setHasQRCode] = useState(false);
@@ -21,11 +23,12 @@ const CreateBox = () => {
   const renderedRooms = React.useMemo(() => {
     const union = new Set<string>(existingRooms);
     localRooms.forEach(r => union.add(r));
+    customLocations.forEach(cl => union.add(cl.name));
     if (room) {
       union.add(room);
     }
     return Array.from(union).sort();
-  }, [existingRooms, localRooms, room]);
+  }, [existingRooms, localRooms, customLocations, room]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

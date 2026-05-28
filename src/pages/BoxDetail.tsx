@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, Printer, Edit3, X, Camera, Package, ChevronDown, Search, Copy, Move, ChevronRight, FolderMinus, FolderPlus } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Printer, Edit3, X, Camera, Package, ChevronDown, Search, Copy, Move, ChevronRight, FolderMinus, FolderPlus, LayoutGrid, List, Settings, Minus, CheckCircle2, Square } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { getTagColor } from '../utils/tagColors';
 import { getWarrantyStatus } from '../utils/warranty';
@@ -161,6 +161,242 @@ const BoxDetail = () => {
   const handleShowExpiredChange = (checked: boolean) => {
     setShowExpired(checked);
     localStorage.setItem('showExpiredStatus', String(checked));
+  };
+
+  const [viewType, setViewType] = useState<'grid' | 'list'>(localStorage.getItem('boxesViewType') as 'grid' | 'list' || 'list');
+  const [gridColumns, setGridColumns] = useState<number>(Number(localStorage.getItem('boxesGridColumns')) || 2);
+  const [gridRows, setGridRows] = useState<number>(Number(localStorage.getItem('boxesGridRows')) || 20);
+  const [listRows, setListRows] = useState<number>(Number(localStorage.getItem('boxesListRows')) || 20);
+  const [listColumns, setListColumns] = useState<number>(Number(localStorage.getItem('boxesListColumns')) || 1);
+  const [listScrollMode, setListScrollMode] = useState<'vertical' | 'horizontal'>(localStorage.getItem('boxesListScrollMode') as 'vertical' | 'horizontal' || 'vertical');
+  const [applyOnlyToDesktop, setApplyOnlyToDesktop] = useState<boolean>(localStorage.getItem('boxesApplyOnlyToDesktop') === 'true');
+  const [showDisplaySettings, setShowDisplaySettings] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(window.innerWidth > 768);
+
+  const handleSaveSettings = () => {
+    localStorage.setItem('boxesGridColumns', String(gridColumns));
+    localStorage.setItem('boxesGridRows', String(gridRows));
+    localStorage.setItem('boxesListRows', String(listRows));
+    localStorage.setItem('boxesListColumns', String(listColumns));
+    localStorage.setItem('boxesListScrollMode', listScrollMode);
+    localStorage.setItem('boxesApplyOnlyToDesktop', String(applyOnlyToDesktop));
+    setShowDisplaySettings(false);
+  };
+
+  const handleCancelSettings = () => {
+    setGridColumns(Number(localStorage.getItem('boxesGridColumns')) || 2);
+    setGridRows(Number(localStorage.getItem('boxesGridRows')) || 20);
+    setListRows(Number(localStorage.getItem('boxesListRows')) || 20);
+    setListColumns(Number(localStorage.getItem('boxesListColumns')) || 1);
+    setListScrollMode(localStorage.getItem('boxesListScrollMode') as 'vertical' | 'horizontal' || 'vertical');
+    setApplyOnlyToDesktop(localStorage.getItem('boxesApplyOnlyToDesktop') === 'true');
+    setShowDisplaySettings(false);
+  };
+
+  useEffect(() => {
+    const handleResize = () => setIsDesktop(window.innerWidth > 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const renderSingleItem = (item: any) => {
+    const isSelected = selectedItemIds.includes(item.id);
+    const warranty = item.warrantyExpire ? getWarrantyStatus(item.warrantyExpire) : null;
+    
+    if (viewType === 'list') {
+      return (
+        <div 
+          key={item.id} 
+          className={`item-list-row-premium ${isSelectionMode ? 'in-selection-mode' : ''} ${isSelected ? 'selected' : ''}`}
+          onClick={() => isSelectionMode ? toggleSelectItem(item.id) : setEditingItem(item)}
+          style={{ cursor: 'pointer' }}
+        >
+          <div className="item-list-left">
+            {isSelectionMode && (
+              <div className="selection-indicator">
+                {isSelected ? <CheckCircle2 size={20} color="var(--primary-color)" /> : <Square size={20} />}
+              </div>
+            )}
+            {item.imageUrl ? (
+              <img 
+                src={item.imageUrl} 
+                alt={item.name} 
+                className="item-list-img" 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (isSelectionMode) {
+                    toggleSelectItem(item.id);
+                  } else {
+                    setFullscreenImage({ images: item.images || [item.imageUrl as string], index: 0 });
+                  }
+                }}
+              />
+            ) : (
+              <div className="item-list-placeholder">
+                <Package size={16} />
+              </div>
+            )}
+            <div className="item-list-info">
+              <span className="item-list-name">{item.name}</span>
+              <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
+                {item.room && (
+                  <span className="item-list-box">Location: {item.room}</span>
+                )}
+                {warranty && (
+                  <span style={{
+                    backgroundColor: 'var(--surface-hover)',
+                    color: warranty.color,
+                    border: '1px solid var(--border-color)',
+                    padding: '3px 8px',
+                    borderRadius: '8px',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    marginTop: '4px',
+                    marginBottom: '4px',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {warranty.isExpired ? 'Expired' : warranty.text}
+                  </span>
+                )}
+              </div>
+              {item.tags && item.tags.length > 0 && (
+                <div className="item-card-tags" style={{ marginTop: '4px', justifyContent: 'flex-start' }}>
+                  {item.tags.map((tag: string) => {
+                    const colors = getTagColor(tag);
+                    return (
+                      <span key={tag} className="item-tag-pill" style={{ backgroundColor: colors.bg, color: colors.text }}>
+                          {tag}
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="item-list-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            {item.quantity > 1 && (
+              <span className="item-list-qty" style={{ marginRight: '8px' }}>{item.quantity}x</span>
+            )}
+            {!isSelectionMode && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); removeItem(item.id); }} 
+                className="delete-item-btn"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // Grid View
+    return (
+      <div 
+        key={item.id} 
+        className={`item-card-premium ${isSelected ? 'selected' : ''}`}
+        onClick={() => isSelectionMode ? toggleSelectItem(item.id) : setEditingItem(item)}
+      >
+        {isSelectionMode && (
+          <div className="selection-indicator-floating">
+            {isSelected ? <CheckCircle2 size={20} color="var(--primary-color)" /> : <Square size={20} />}
+          </div>
+        )}
+        <div className="item-card-image-area">
+          {item.imageUrl ? (
+            <img 
+              src={item.imageUrl} 
+              alt={item.name} 
+              className="item-card-img" 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (isSelectionMode) {
+                  toggleSelectItem(item.id);
+                } else {
+                  setFullscreenImage({ images: item.images || [item.imageUrl as string], index: 0 });
+                }
+              }}
+            />
+          ) : (
+            <div className="item-card-placeholder">
+              <Package size={24} />
+            </div>
+          )}
+          {item.quantity > 1 && (
+            <div className="item-card-qty-badge">{item.quantity}x</div>
+          )}
+        </div>
+        
+        <div className="item-card-content">
+          <div className="item-card-main">
+            <h3 className="item-card-name">{item.name}</h3>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap', marginTop: '4px' }}>
+              {item.room && (
+                <div className="item-card-box-info" style={{ margin: 0 }}>
+                  <span>Location: {item.room}</span>
+                </div>
+              )}
+            </div>
+            {item.tags && item.tags.length > 0 && (
+              <div className="item-card-tags">
+                {item.tags.map((tag: string) => {
+                  const colors = getTagColor(tag);
+                  return (
+                    <span key={tag} className="item-tag-pill" style={{ backgroundColor: colors.bg, color: colors.text }}>
+                      {tag}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+          
+          <div className="item-card-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+            {warranty ? (
+              <span className="warranty-tag-mini" style={{ color: warranty.color }}>
+                {warranty.isExpired ? 'Expired' : warranty.text}
+              </span>
+            ) : (
+              <span />
+            )}
+            {!isSelectionMode && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); removeItem(item.id); }} 
+                className="delete-item-btn"
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  borderRadius: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <Trash2 size={16} />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   };
 
   const renderedBulkGroups = React.useMemo(() => {
@@ -958,7 +1194,41 @@ const BoxDetail = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px' }} className="no-print">
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }} className="no-print">
+            <div className="view-toggle-container" style={{ marginRight: '8px' }}>
+              <button 
+                className="view-toggle-btn" 
+                onClick={() => setShowDisplaySettings(true)}
+                title="Display Settings"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Settings size={18} />
+              </button>
+              <button 
+                className={`view-toggle-btn ${viewType === 'grid' ? 'active' : ''}`}
+                onClick={() => {
+                  setViewType('grid');
+                  localStorage.setItem('boxesViewType', 'grid');
+                }}
+                title="Grid View"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <LayoutGrid size={18} />
+              </button>
+              <button 
+                className={`view-toggle-btn ${viewType === 'list' ? 'active' : ''}`}
+                onClick={() => {
+                  setViewType('list');
+                  localStorage.setItem('boxesListScrollMode', 'vertical');
+                  localStorage.setItem('boxesViewType', 'list');
+                }}
+                title="List View"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <List size={18} />
+              </button>
+            </div>
+
             <button
               onClick={toggleSelectionMode}
               className={`select-items-btn ${isSelectionMode ? 'active' : ''}`}
@@ -1024,110 +1294,35 @@ const BoxDetail = () => {
             </div>
           ) : !hasAnyGroups ? (
             // Flat List Fallback (If box has no groups, render standard flat list)
-            filteredItems.map(item => (
-              <div 
-                key={item.id} 
-                className={`item-row ${isSelectionMode ? 'in-selection-mode' : ''} ${isSelectionMode && selectedItemIds.includes(item.id) ? 'selected' : ''}`} 
-                onClick={() => {
-                  if (isSelectionMode) {
-                    toggleSelectItem(item.id);
-                  } else {
-                    setEditingItem(item);
-                  }
-                }}
-              >
-                <div className="item-row-left">
-                  {isSelectionMode && (
-                    <div className={`row-checkbox ${selectedItemIds.includes(item.id) ? 'checked' : ''}`} style={{
-                      width: '22px',
-                      height: '22px',
-                      borderRadius: '50%',
-                      border: '2px solid rgba(255, 255, 255, 0.3)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      marginRight: '12px',
-                      flexShrink: 0,
-                      backgroundColor: selectedItemIds.includes(item.id) ? 'var(--primary-color)' : 'transparent',
-                      borderColor: selectedItemIds.includes(item.id) ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.3)',
-                      transition: 'all 0.15s ease'
-                    }}>
-                      {selectedItemIds.includes(item.id) && (
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      )}
-                    </div>
-                  )}
-                  {item.imageUrl && (
-                    <img 
-                      src={item.imageUrl} 
-                      className="item-mini-photo" 
-                      alt="" 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (isSelectionMode) {
-                          toggleSelectItem(item.id);
-                        } else {
-                          setFullscreenImage({ images: item.images || [item.imageUrl as string], index: 0 });
-                        }
-                      }} 
-                    />
-                  )}
-                  <div className="item-info">
-                    <span className="item-name">{item.name}</span>
-                    <div className="item-meta-row">
-                      <span className="item-qty">Quantity: {item.quantity || 1}</span>
-                      {item.purchaseDate && (
-                        <span className="item-meta-date">Purchased: {item.purchaseDate}</span>
-                      )}
-                      {item.warrantyExpire && (
-                        (() => {
-                          const status = getWarrantyStatus(item.warrantyExpire);
-                          if (!showExpired && status?.isExpired) return null;
-                          return (
-                            <span className="item-meta-date" style={{ color: status?.color }}>
-                              Warranty: {item.warrantyExpire} ({status?.text})
-                            </span>
-                          );
-                        })()
-                      )}
-                    </div>
-                    {item.tags && item.tags.length > 0 && (
-                      <div className="item-row-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
-                        {item.tags.map((tag: string) => {
-                          const colors = getTagColor(tag);
-                          return (
-                            <span 
-                              key={tag} 
-                              className="item-tag-pill" 
-                              style={{ 
-                                fontSize: '9px', 
-                                padding: '1px 6px', 
-                                backgroundColor: colors.bg, 
-                                color: colors.text,
-                                borderRadius: '4px',
-                                textTransform: 'uppercase',
-                                fontWeight: '700'
-                              }}
-                            >
-                              {tag}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {!isSelectionMode && (
-                  <div className="item-row-actions no-print">
-                    <button onClick={(e) => { e.stopPropagation(); removeItem(item.id); }} className="delete-item-btn">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))
+            <div 
+              className={viewType === 'grid' ? 'items-grid' : 'items-list-view'}
+              style={{ 
+                gridTemplateColumns: viewType === 'grid' 
+                  ? `repeat(${(!isDesktop && applyOnlyToDesktop) ? 2 : gridColumns}, 1fr)` 
+                  : (listScrollMode === 'vertical' 
+                      ? `repeat(${(!isDesktop && applyOnlyToDesktop) ? 1 : listColumns}, 1fr)` 
+                      : 'none'),
+                gridTemplateRows: viewType === 'list' && listScrollMode === 'horizontal'
+                  ? `repeat(${listRows}, auto)`
+                  : 'none',
+                display: 'grid',
+                gridAutoFlow: viewType === 'list' && listScrollMode === 'horizontal' ? 'column' : 'row',
+                gap: '12px',
+                minWidth: viewType === 'list' && listScrollMode === 'horizontal' 
+                  ? 'max-content'
+                  : (listScrollMode === 'horizontal' && viewType === 'grid'
+                      ? `${(!isDesktop && applyOnlyToDesktop ? 2 : gridColumns) * 160}px`
+                      : '100%'),
+                paddingBottom: '24px'
+              }}
+            >
+              {filteredItems.slice(0, viewType === 'grid' 
+                ? ((!isDesktop && applyOnlyToDesktop ? 2 : gridColumns) * gridRows)
+                : (listScrollMode === 'horizontal' 
+                    ? (filteredItems.length) 
+                    : (999))
+              ).map(item => renderSingleItem(item))}
+            </div>
           ) : (
             // Collapsible Groups Card Layout
             sortedGroupNames.map(groupName => {
@@ -1221,115 +1416,35 @@ const BoxDetail = () => {
                     padding: '8px',
                     display: isCollapsed ? 'none' : 'block'
                   }}>
-                    {groupItems.map(item => (
-                      <div 
-                        key={item.id} 
-                        className={`item-row ${isSelectionMode ? 'in-selection-mode' : ''} ${isSelectionMode && selectedItemIds.includes(item.id) ? 'selected' : ''}`} 
-                        onClick={() => {
-                          if (isSelectionMode) {
-                            toggleSelectItem(item.id);
-                          } else {
-                            setEditingItem(item);
-                          }
-                        }} 
-                        style={{
-                          margin: '4px 0',
-                          border: 'none',
-                          backgroundColor: 'rgba(255, 255, 255, 0.01)'
-                        }}
-                      >
-                        <div className="item-row-left">
-                          {isSelectionMode && (
-                            <div className={`row-checkbox ${selectedItemIds.includes(item.id) ? 'checked' : ''}`} style={{
-                              width: '22px',
-                              height: '22px',
-                              borderRadius: '50%',
-                              border: '2px solid rgba(255, 255, 255, 0.3)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              marginRight: '12px',
-                              flexShrink: 0,
-                              backgroundColor: selectedItemIds.includes(item.id) ? 'var(--primary-color)' : 'transparent',
-                              borderColor: selectedItemIds.includes(item.id) ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.3)',
-                              transition: 'all 0.15s ease'
-                            }}>
-                              {selectedItemIds.includes(item.id) && (
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                                  <polyline points="20 6 9 17 4 12" />
-                                </svg>
-                              )}
-                            </div>
-                          )}
-                          {item.imageUrl && (
-                            <img 
-                              src={item.imageUrl} 
-                              className="item-mini-photo" 
-                              alt="" 
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (isSelectionMode) {
-                                  toggleSelectItem(item.id);
-                                } else {
-                                  setFullscreenImage({ images: item.images || [item.imageUrl as string], index: 0 });
-                                }
-                              }} 
-                            />
-                          )}
-                          <div className="item-info">
-                            <span className="item-name">{item.name}</span>
-                            <div className="item-meta-row">
-                              <span className="item-qty">Quantity: {item.quantity || 1}</span>
-                              {item.purchaseDate && (
-                                <span className="item-meta-date">Purchased: {item.purchaseDate}</span>
-                              )}
-                              {item.warrantyExpire && (
-                                (() => {
-                                  const status = getWarrantyStatus(item.warrantyExpire);
-                                  if (!showExpired && status?.isExpired) return null;
-                                  return (
-                                    <span className="item-meta-date" style={{ color: status?.color }}>
-                                      Warranty: {item.warrantyExpire} ({status?.text})
-                                    </span>
-                                  );
-                                })()
-                              )}
-                            </div>
-                            {item.tags && item.tags.length > 0 && (
-                              <div className="item-row-tags" style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '6px' }}>
-                                {item.tags.map((tag: string) => {
-                                  const colors = getTagColor(tag);
-                                  return (
-                                    <span 
-                                      key={tag} 
-                                      className="item-tag-pill" 
-                                      style={{ 
-                                        fontSize: '9px', 
-                                        padding: '1px 6px', 
-                                        backgroundColor: colors.bg, 
-                                        color: colors.text,
-                                        borderRadius: '4px',
-                                        textTransform: 'uppercase',
-                                        fontWeight: '700'
-                                      }}
-                                    >
-                                      {tag}
-                                    </span>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                        {!isSelectionMode && (
-                          <div className="item-row-actions no-print">
-                            <button onClick={(e) => { e.stopPropagation(); removeItem(item.id); }} className="delete-item-btn">
-                              <Trash2 size={16} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                    <div 
+                      className={viewType === 'grid' ? 'items-grid' : 'items-list-view'}
+                      style={{ 
+                        gridTemplateColumns: viewType === 'grid' 
+                          ? `repeat(${(!isDesktop && applyOnlyToDesktop) ? 2 : gridColumns}, 1fr)` 
+                          : (listScrollMode === 'vertical' 
+                              ? `repeat(${(!isDesktop && applyOnlyToDesktop) ? 1 : listColumns}, 1fr)` 
+                              : 'none'),
+                        gridTemplateRows: viewType === 'list' && listScrollMode === 'horizontal'
+                          ? `repeat(${listRows}, auto)`
+                          : 'none',
+                        display: 'grid',
+                        gridAutoFlow: viewType === 'list' && listScrollMode === 'horizontal' ? 'column' : 'row',
+                        gap: '12px',
+                        minWidth: viewType === 'list' && listScrollMode === 'horizontal' 
+                          ? 'max-content'
+                          : (listScrollMode === 'horizontal' && viewType === 'grid'
+                              ? `${(!isDesktop && applyOnlyToDesktop ? 2 : gridColumns) * 160}px`
+                              : '100%'),
+                        paddingBottom: '0px'
+                      }}
+                    >
+                      {groupItems.slice(0, viewType === 'grid' 
+                        ? ((!isDesktop && applyOnlyToDesktop ? 2 : gridColumns) * gridRows)
+                        : (listScrollMode === 'horizontal' 
+                            ? (groupItems.length) 
+                            : (999))
+                      ).map(item => renderSingleItem(item))}
+                    </div>
                   </div>
                 </div>
               );
@@ -1808,10 +1923,14 @@ const BoxDetail = () => {
                 }}>
                   <Search size={18} color="var(--text-secondary)" />
                   <input 
-                    type="text" 
+                    type="search" 
                     placeholder="Search existing items..." 
                     value={sheetSearchQuery}
                     onChange={e => setSheetSearchQuery(e.target.value)}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="none"
+                    spellCheck="false"
                     autoFocus
                     style={{
                       background: 'none',
@@ -2080,6 +2199,210 @@ const BoxDetail = () => {
                 className="option-btn secondary" 
                 onClick={handleCloseBulkGroupSheet} 
                 style={{backgroundColor: 'transparent', color: 'var(--text-secondary)', padding: '8px'}}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showDisplaySettings && (
+        <div className="action-sheet-overlay" onClick={handleCancelSettings}>
+          <div className="action-sheet" onClick={e => e.stopPropagation()}>
+            <div className="action-sheet-header">
+              <h3>Display Settings</h3>
+              <p style={{color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px'}}>
+                Customize your box view layout.
+              </p>
+            </div>
+            <div className="action-sheet-options" style={{ padding: '20px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ display: 'block', marginBottom: '12px' }}>
+                    <span>Grid Columns</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setGridColumns(Math.max(1, gridColumns - 1))}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '30px', textAlign: 'center' }}>{gridColumns}</span>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setGridColumns(Math.min(6, gridColumns + 1))}
+                      style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: 0 }}>
+                  <label style={{ display: 'block', marginBottom: '12px' }}>
+                    <span>Grid Rows (Max)</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setGridRows(Math.max(1, gridRows - 1))}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '30px', textAlign: 'center' }}>{gridRows}</span>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setGridRows(Math.min(100, gridRows + 1))}
+                      style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '24px' }}>
+                <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span>List Scroll Mode</span>
+                </label>
+                <div style={{ display: 'flex', background: 'var(--surface-hover)', padding: '4px', borderRadius: '12px', gap: '4px' }}>
+                  <button 
+                    className={`view-toggle-btn ${listScrollMode === 'vertical' ? 'active' : ''}`}
+                    onClick={() => setListScrollMode('vertical')}
+                    style={{ flex: 1, padding: '10px' }}
+                  >
+                    Vertical
+                  </button>
+                  <button 
+                    className={`view-toggle-btn ${listScrollMode === 'horizontal' ? 'active' : ''}`}
+                    onClick={() => setListScrollMode('horizontal')}
+                    style={{ flex: 1, padding: '10px' }}
+                  >
+                    Horizontal
+                  </button>
+                </div>
+              </div>
+
+              {listScrollMode === 'horizontal' && (
+                <div className="form-group" style={{ marginBottom: '24px' }}>
+                  <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <span>List Rows</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setListRows(Math.max(1, listRows - 1))}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{listRows}</span>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setListRows(Math.min(10, listRows + 1))}
+                      style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {listScrollMode === 'vertical' && (
+                <div className="form-group" style={{ marginBottom: '24px' }}>
+                  <label style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <span>List Columns</span>
+                  </label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setListColumns(Math.max(1, listColumns - 1))}
+                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Minus size={20} />
+                    </button>
+                    <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '40px', textAlign: 'center' }}>{listColumns}</span>
+                    <button 
+                      className="stepper-btn" 
+                      onClick={() => setListColumns(Math.min(6, listColumns + 1))}
+                      style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
+                    >
+                      <Plus size={20} />
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div 
+                className="toggle-wrapper" 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  marginBottom: '20px', 
+                  cursor: 'pointer',
+                  padding: '12px 16px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.02)',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-color)',
+                  transition: 'background-color 0.2s'
+                }} 
+                onClick={() => setApplyOnlyToDesktop(!applyOnlyToDesktop)}
+              >
+                <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  Apply only to Web (Desktop)
+                </span>
+                
+                {/* Custom Premium Sliding Switch Toggle */}
+                <div style={{
+                  width: '46px',
+                  height: '26px',
+                  borderRadius: '100px',
+                  backgroundColor: applyOnlyToDesktop ? 'var(--primary-color)' : 'rgba(255, 255, 255, 0.08)',
+                  padding: '3px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  transition: 'background-color 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  position: 'relative',
+                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.4)',
+                  flexShrink: 0
+                }}>
+                  <div style={{
+                    width: '20px',
+                    height: '20px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ffffff',
+                    transform: applyOnlyToDesktop ? 'translateX(20px)' : 'translateX(0)',
+                    transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.4)'
+                  }} />
+                </div>
+              </div>
+
+              <button className="submit-btn" style={{ width: '100%', marginTop: '20px' }} onClick={handleSaveSettings}>
+                Save
+              </button>
+              
+              <button 
+                type="button" 
+                className="option-btn" 
+                style={{ 
+                  width: '100%', 
+                  marginTop: '12px', 
+                  padding: '16px', 
+                  borderRadius: '16px', 
+                  border: 'none', 
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)', 
+                  color: 'var(--text-secondary)', 
+                  fontSize: '16px', 
+                  fontWeight: 600, 
+                  cursor: 'pointer' 
+                }} 
+                onClick={handleCancelSettings}
               >
                 Cancel
               </button>

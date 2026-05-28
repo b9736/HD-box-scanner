@@ -14,6 +14,7 @@ import Login from './pages/Login';
 import { useBoxes } from './hooks/useBoxes';
 import { useItems } from './hooks/useItems';
 import ItemsPage from './pages/Items';
+import { ManagementPage } from './pages/Management';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { FullscreenGallery, TagManagementModal } from './components/ItemModals';
 
@@ -197,10 +198,14 @@ const Home = () => {
             <Search size={20} className="search-icon-static" />
           )}
           <input 
-            type="text" 
+            type="search" 
             placeholder="Search for boxes or items..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck="false"
           />
         </div>
       </div>
@@ -730,6 +735,7 @@ const AppContent = () => {
       <nav className="side-nav">
         <Link to="/" className={`nav-item ${location.pathname === '/' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Package size={20} /> <span>Boxes</span></Link>
         <Link to="/items" className={`nav-item ${location.pathname === '/items' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Search size={20} /> <span>Items</span></Link>
+        <Link to="/management" className={`nav-item ${location.pathname === '/management' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Sliders size={20} /> <span>Management</span></Link>
         <Link to="/gallery" className={`nav-item ${location.pathname === '/gallery' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Image size={20} /> <span>Gallery</span></Link>
         <Link to="/folders" className={`nav-item ${location.pathname === '/folders' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Folder size={20} /> <span>Folders</span></Link>
         <Link to="/settings" className={`nav-item ${location.pathname === '/settings' ? 'active' : ''}`} onClick={() => setIsMenuOpen(false)}><Settings size={20} /> <span>Settings</span></Link>
@@ -760,6 +766,7 @@ const AppContent = () => {
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/items" element={<ItemsPage />} />
+              <Route path="/management" element={<ManagementPage />} />
               <Route path="/create" element={<CreateBox />} />
               <Route path="/scan" element={<ScanPage />} />
               <Route path="/box/:id" element={<BoxDetail />} />

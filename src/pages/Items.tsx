@@ -368,10 +368,14 @@ const ItemsPage = () => {
         <div className="search-bar">
           <Search size={20} className="search-icon-static" />
           <input 
-            type="text" 
+            type="search" 
             placeholder="Search items..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="none"
+            spellCheck="false"
           />
           {searchQuery && (
             <button className="search-clear-text-btn" onClick={() => setSearchQuery('')}>
