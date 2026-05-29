@@ -50,6 +50,9 @@ interface ItemEditModalProps {
   onPreviewImage: (images: string[], index: number) => void;
   onAddTag?: (name: string) => void;
   onDrop?: (type: 'item' | 'receipt', files: FileList) => void;
+  tempImages?: string[];
+  tempReceipts?: string[];
+  onRemoveTempImage?: (type: 'item' | 'receipt', index: number) => void;
 }
 
 export const ItemEditModal: React.FC<ItemEditModalProps> = ({ 
@@ -62,7 +65,10 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   onUpdate, 
   onImageRequest,
   onAddTag,
-  onDrop
+  onDrop,
+  tempImages = [],
+  tempReceipts = [],
+  onRemoveTempImage
 }) => {
   const [isClosing, setIsClosing] = useState(false);
   const [dragType, setDragType] = useState<'item' | 'receipt' | null>(null);
@@ -91,6 +97,35 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   const [showAddNewRoomInput, setShowAddNewRoomInput] = useState(false);
   const [newRoomInput, setNewRoomInput] = useState('');
   const [localRooms, setLocalRooms] = useState<string[]>([]);
+
+  const draftLoadedRef = useRef(false);
+
+  useEffect(() => {
+    const draft = localStorage.getItem(`edit_item_draft_${item.id}`);
+    if (draft) {
+      try {
+        const data = JSON.parse(draft);
+        setName(data.name || '');
+        setQuantity(data.quantity || 1);
+        setPurchaseDate(data.purchaseDate || '');
+        setWarrantyExpire(data.warrantyExpire || '');
+        setDescription(data.description || '');
+        setSelectedTags(data.selectedTags || []);
+        setSelectedBoxId(data.selectedBoxId || '');
+        setRoom(data.room || '');
+        setGroupName(data.groupName || '');
+      } catch (err) {
+        console.error("Error restoring edit draft:", err);
+      }
+    }
+    draftLoadedRef.current = true;
+  }, [item.id]);
+
+  useEffect(() => {
+    if (!draftLoadedRef.current) return;
+    const draftData = { name, quantity, purchaseDate, warrantyExpire, description, selectedTags, selectedBoxId, room, groupName };
+    localStorage.setItem(`edit_item_draft_${item.id}`, JSON.stringify(draftData));
+  }, [name, quantity, purchaseDate, warrantyExpire, description, selectedTags, selectedBoxId, room, groupName, item.id]);
 
   const existingRooms = React.useMemo(() => {
     return Array.from(new Set(boxes.map(b => b.room).filter(Boolean))).sort();
@@ -151,10 +186,26 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   const { tags: allAvailableTags } = useItemTags();
 
   useEffect(() => {
-    if (item.imageUrl !== imageUrl) setImageUrl(item.imageUrl || '');
-    if (item.receiptUrl !== receiptUrl) setReceiptUrl(item.receiptUrl || '');
+    if (item.imageUrl !== imageUrl && tempImages.includes(item.imageUrl)) setImageUrl(item.imageUrl || '');
+    if (item.receiptUrl !== receiptUrl && tempReceipts.includes(item.receiptUrl)) setReceiptUrl(item.receiptUrl || '');
     if (item.groupName !== groupName) setGroupName(item.groupName || '');
   }, [item.imageUrl, item.receiptUrl, item.groupName]);
+
+  useEffect(() => {
+    if (tempImages.length > 0 && !tempImages.includes(imageUrl)) {
+      setImageUrl(tempImages[0]);
+    } else if (tempImages.length === 0) {
+      setImageUrl('');
+    }
+  }, [tempImages, imageUrl]);
+
+  useEffect(() => {
+    if (tempReceipts.length > 0 && !tempReceipts.includes(receiptUrl)) {
+      setReceiptUrl(tempReceipts[0]);
+    } else if (tempReceipts.length === 0) {
+      setReceiptUrl('');
+    }
+  }, [tempReceipts, receiptUrl]);
 
   const warrantyStatus = getWarrantyStatus(warrantyExpire);
 
@@ -185,6 +236,10 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
     selectedBoxId !== (item.boxId || '') ||
     room !== (item.room || '') ||
     JSON.stringify([...selectedTags].sort()) !== JSON.stringify([...(item.tags || [])].sort()) ||
+    JSON.stringify(tempImages) !== JSON.stringify(item.images || []) ||
+    JSON.stringify(tempReceipts) !== JSON.stringify(item.receipts || []) ||
+    imageUrl !== (item.imageUrl || '') ||
+    receiptUrl !== (item.receiptUrl || '') ||
     tagInput !== '';
 
   const handleDragOver = (e: React.DragEvent, type: 'item' | 'receipt') => {
@@ -213,6 +268,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
   };
 
   const handleClose = () => {
+    localStorage.removeItem(`edit_item_draft_${item.id}`);
     setIsClosing(true);
     setTimeout(onClose, 300);
   };
@@ -242,7 +298,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
       const finalTags = Array.from(new Set([...selectedTags, ...manualTags]));
       
       // Reorder images so the selected thumbnail is first
-      let newImages = [...(item.images || [])];
+      let newImages = [...(tempImages || [])];
       if (imageUrl && newImages.includes(imageUrl)) {
         newImages = [imageUrl, ...newImages.filter(img => img !== imageUrl)];
       }
@@ -257,6 +313,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
         imageUrl,
         receiptUrl,
         images: newImages,
+        receipts: tempReceipts,
         groupName: groupName.trim(),
         boxId: selectedBoxId,
         room: room || ''
@@ -312,7 +369,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
             >
               <label>Item Photos</label>
               <div className="modal-gallery-scroll">
-                {(item.images || []).map((img: string, idx: number) => (
+                {(tempImages || []).map((img: string, idx: number) => (
                   <div 
                     key={idx} 
                     className={`modal-gallery-item ${imageUrl === img ? 'is-thumbnail' : ''}`}
@@ -336,11 +393,12 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
                       setConfirmModal({
                         isOpen: true,
                         title: 'Delete Photo',
-                        message: 'Permanently delete this photo? Images are auto-saved.',
+                        message: 'Remove this photo from changes? Unsaved changes can be discarded.',
                         type: 'destructive',
                         onConfirm: () => {
-                          const newImages = item.images.filter((_: any, i: number) => i !== idx);
-                          onUpdate({ ...item, images: newImages, imageUrl: newImages[0] || '' });
+                          if (onRemoveTempImage) {
+                            onRemoveTempImage('item', idx);
+                          }
                         }
                       });
                     }}>
@@ -363,7 +421,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
             >
               <label>Receipts & Docs</label>
               <div className="modal-gallery-scroll">
-                {(item.receipts || []).map((img: string, idx: number) => (
+                {(tempReceipts || []).map((img: string, idx: number) => (
                   <div 
                     key={idx} 
                     className={`modal-gallery-item ${receiptUrl === img ? 'is-receipt-main' : ''}`}
@@ -382,11 +440,12 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
                       setConfirmModal({
                         isOpen: true,
                         title: 'Delete Receipt',
-                        message: 'Permanently delete this receipt/document?',
+                        message: 'Remove this receipt/document from changes?',
                         type: 'destructive',
                         onConfirm: () => {
-                          const newReceipts = item.receipts.filter((_: any, i: number) => i !== idx);
-                          onUpdate({ ...item, receipts: newReceipts, receiptUrl: newReceipts[0] || '' });
+                          if (onRemoveTempImage) {
+                            onRemoveTempImage('receipt', idx);
+                          }
                         }
                       });
                     }}>
@@ -953,6 +1012,34 @@ export const ItemAddModal: React.FC<ItemAddModalProps> = ({
   const [newRoomInput, setNewRoomInput] = useState('');
   const [localRooms, setLocalRooms] = useState<string[]>([]);
 
+  const draftLoadedRef = useRef(false);
+
+  useEffect(() => {
+    const draft = localStorage.getItem('add_item_draft');
+    if (draft) {
+      try {
+        const data = JSON.parse(draft);
+        setName(data.name || '');
+        setQuantity(data.quantity || 1);
+        setPurchaseDate(data.purchaseDate || '');
+        setWarrantyExpire(data.warrantyExpire || '');
+        setDescription(data.description || '');
+        setSelectedTags(data.selectedTags || []);
+        setSelectedBoxId(data.selectedBoxId || '');
+        setRoom(data.room || '');
+      } catch (err) {
+        console.error("Error restoring Add draft:", err);
+      }
+    }
+    draftLoadedRef.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!draftLoadedRef.current) return;
+    const draftData = { name, quantity, purchaseDate, warrantyExpire, description, selectedTags, selectedBoxId, room };
+    localStorage.setItem('add_item_draft', JSON.stringify(draftData));
+  }, [name, quantity, purchaseDate, warrantyExpire, description, selectedTags, selectedBoxId, room]);
+
   const existingRooms = React.useMemo(() => {
     return Array.from(new Set(boxes.map(b => b.room).filter(Boolean))).sort();
   }, [boxes]);
@@ -1001,6 +1088,7 @@ export const ItemAddModal: React.FC<ItemAddModalProps> = ({
   };
 
   const handleClose = () => {
+    localStorage.removeItem('add_item_draft');
     setIsClosing(true);
     setTimeout(onClose, 300);
   };

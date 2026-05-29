@@ -38,6 +38,19 @@ const ItemsPage = () => {
   
   // Edit states
   const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [tempEditImages, setTempEditImages] = useState<string[]>([]);
+  const [tempEditReceipts, setTempEditReceipts] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (editingItem) {
+      setTempEditImages(editingItem.images || []);
+      setTempEditReceipts(editingItem.receipts || []);
+    } else {
+      setTempEditImages([]);
+      setTempEditReceipts([]);
+    }
+  }, [editingItem]);
+
   const [imageSourceModal, setImageSourceModal] = useState<any | null>(null);
   const [fullscreenImage, setFullscreenImage] = useState<{images: string[], index: number} | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -53,6 +66,12 @@ const ItemsPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadContextRef = useRef<{type: 'item' | 'receipt', itemId: string} | null>(null);
+
+  // Synchronously capture recovery context on first render before events can delete it
+  const [pendingRecoveryContext, setPendingRecoveryContext] = useState(() => {
+    const contextJson = localStorage.getItem('uploadContext');
+    return contextJson ? JSON.parse(contextJson) : null;
+  });
 
   // Selection states
   const [isSelectionMode, setIsSelectionMode] = useState(false);
@@ -78,17 +97,23 @@ const ItemsPage = () => {
     return matchesSearch && matchesTags;
   });
 
-  // Recovery effect for mobile camera reloads
+  // Recovery effect for mobile camera reloads - runs whenever items load or modal states change
   useEffect(() => {
-    const contextJson = sessionStorage.getItem('uploadContext');
-    if (contextJson && items.length > 0) {
-      const context = JSON.parse(contextJson);
-      if (context.itemId && !editingItem) {
-        const item = items.find(i => i.id === context.itemId);
-        if (item) setEditingItem(item);
+    if (pendingRecoveryContext) {
+      if (pendingRecoveryContext.itemId === 'new-item') {
+        setIsAddingItem(true);
+        localStorage.removeItem('uploadContext');
+        setPendingRecoveryContext(null);
+      } else if (pendingRecoveryContext.itemId && !editingItem && items.length > 0) {
+        const item = items.find(i => i.id === pendingRecoveryContext.itemId);
+        if (item) {
+          setEditingItem(item);
+          localStorage.removeItem('uploadContext');
+          setPendingRecoveryContext(null);
+        }
       }
     }
-  }, [items, editingItem]);
+  }, [items, editingItem, pendingRecoveryContext]);
 
 
 
@@ -154,17 +179,9 @@ const ItemsPage = () => {
         else setTempAddReceipts(prev => [...prev, ...processedImages]);
       } else if (currentItem) {
         if (type === 'item') {
-          const currentImages = currentItem.images || [];
-          const newImages = [...currentImages, ...processedImages];
-          const updates = { images: newImages, imageUrl: newImages[0] || '' };
-          await updateItem(targetItemId, updates);
-          if (editingItem?.id === targetItemId) setEditingItem({ ...editingItem, ...updates });
+          setTempEditImages(prev => [...prev, ...processedImages]);
         } else {
-          const currentReceipts = currentItem.receipts || [];
-          const newReceipts = [...currentReceipts, ...processedImages];
-          const updates = { receipts: newReceipts, receiptUrl: newReceipts[0] || '' };
-          await updateItem(targetItemId, updates);
-          if (editingItem?.id === targetItemId) setEditingItem({ ...editingItem, ...updates });
+          setTempEditReceipts(prev => [...prev, ...processedImages]);
         }
       }
     } catch (err: any) {
@@ -460,12 +477,7 @@ const ItemsPage = () => {
               paddingBottom: '140px'
             }}
           >
-            {filteredItems.slice(0, viewType === 'grid' 
-              ? ((!isDesktop && applyOnlyToDesktop ? 2 : gridColumns) * gridRows)
-              : (listScrollMode === 'horizontal' 
-                  ? (filteredItems.length) 
-                  : (999)) // Vertical list ignores row limit
-            ).map((item) => {
+            {filteredItems.map((item) => {
               const box = boxes.find(b => b.id === item.boxId);
               const warranty = item.warrantyExpire ? getWarrantyStatus(item.warrantyExpire) : null;
               
@@ -626,7 +638,7 @@ const ItemsPage = () => {
           onImageRequest={(type) => {
             const context = { type, itemId: 'new-item' };
             uploadContextRef.current = context;
-            sessionStorage.setItem('uploadContext', JSON.stringify(context));
+            localStorage.setItem('uploadContext', JSON.stringify(context));
             setImageSourceModal({ type });
           }}
           onPreviewImage={(images, index) => setFullscreenImage({ images, index })}
@@ -681,12 +693,18 @@ const ItemsPage = () => {
           onImageRequest={(type) => {
             const context = { type, itemId: editingItem.id };
             uploadContextRef.current = context;
-            sessionStorage.setItem('uploadContext', JSON.stringify(context));
+            localStorage.setItem('uploadContext', JSON.stringify(context));
             setImageSourceModal({ type });
           }}
           onPreviewImage={(images, index) => setFullscreenImage({ images, index })}
           onAddTag={addTag}
           onDrop={handleDropFiles}
+          tempImages={tempEditImages}
+          tempReceipts={tempEditReceipts}
+          onRemoveTempImage={(type, index) => {
+            if (type === 'item') setTempEditImages(prev => prev.filter((_, i) => i !== index));
+            else setTempEditReceipts(prev => prev.filter((_, i) => i !== index));
+          }}
         />
       )}
 
@@ -853,7 +871,7 @@ const ItemsPage = () => {
               </p>
             </div>
             <div className="action-sheet-options" style={{ padding: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginBottom: '24px' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label style={{ display: 'block', marginBottom: '12px' }}>
                     <span>Grid Columns</span>
@@ -870,29 +888,6 @@ const ItemsPage = () => {
                     <button 
                       className="stepper-btn" 
                       onClick={() => setGridColumns(Math.min(6, gridColumns + 1))}
-                      style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-                    >
-                      <Plus size={20} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ display: 'block', marginBottom: '12px' }}>
-                    <span>Grid Rows (Max)</span>
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
-                    <button 
-                      className="stepper-btn" 
-                      onClick={() => setGridRows(Math.max(1, gridRows - 1))}
-                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-                    >
-                      <Minus size={20} />
-                    </button>
-                    <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '30px', textAlign: 'center' }}>{gridRows}</span>
-                    <button 
-                      className="stepper-btn" 
-                      onClick={() => setGridRows(Math.min(100, gridRows + 1))}
                       style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
                     >
                       <Plus size={20} />

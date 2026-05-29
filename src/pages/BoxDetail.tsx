@@ -1317,12 +1317,7 @@ const BoxDetail = () => {
                 paddingBottom: '24px'
               }}
             >
-              {filteredItems.slice(0, viewType === 'grid' 
-                ? ((!isDesktop && applyOnlyToDesktop ? 2 : gridColumns) * gridRows)
-                : (listScrollMode === 'horizontal' 
-                    ? (filteredItems.length) 
-                    : (999))
-              ).map(item => renderSingleItem(item))}
+              {filteredItems.map(item => renderSingleItem(item))}
             </div>
           ) : (
             // Collapsible Groups Card Layout
@@ -1439,12 +1434,7 @@ const BoxDetail = () => {
                         paddingBottom: '0px'
                       }}
                     >
-                      {groupItems.slice(0, viewType === 'grid' 
-                        ? ((!isDesktop && applyOnlyToDesktop ? 2 : gridColumns) * gridRows)
-                        : (listScrollMode === 'horizontal' 
-                            ? (groupItems.length) 
-                            : (999))
-                      ).map(item => renderSingleItem(item))}
+                       {groupItems.map(item => renderSingleItem(item))}
                     </div>
                   </div>
                 </div>
@@ -2298,7 +2288,7 @@ const BoxDetail = () => {
               </p>
             </div>
             <div className="action-sheet-options" style={{ padding: '20px' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '16px', marginBottom: '24px' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label style={{ display: 'block', marginBottom: '12px' }}>
                     <span>Grid Columns</span>
@@ -2315,29 +2305,6 @@ const BoxDetail = () => {
                     <button 
                       className="stepper-btn" 
                       onClick={() => setGridColumns(Math.min(6, gridColumns + 1))}
-                      style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-                    >
-                      <Plus size={20} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label style={{ display: 'block', marginBottom: '12px' }}>
-                    <span>Grid Rows (Max)</span>
-                  </label>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center', backgroundColor: 'var(--surface-hover)', padding: '12px', borderRadius: '16px' }}>
-                    <button 
-                      className="stepper-btn" 
-                      onClick={() => setGridRows(Math.max(1, gridRows - 1))}
-                      style={{ background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
-                    >
-                      <Minus size={20} />
-                    </button>
-                    <span style={{ fontSize: '24px', fontWeight: '800', minWidth: '30px', textAlign: 'center' }}>{gridRows}</span>
-                    <button 
-                      className="stepper-btn" 
-                      onClick={() => setGridRows(Math.min(100, gridRows + 1))}
                       style={{ background: 'var(--primary-color)', border: 'none', color: 'white', padding: '8px', borderRadius: '8px', cursor: 'pointer' }}
                     >
                       <Plus size={20} />

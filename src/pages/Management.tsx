@@ -396,9 +396,33 @@ export const ManagementPage = () => {
                       </div>
                       <div>
                         <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{loc}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '2px', marginBottom: boxCount > 0 ? '8px' : 0 }}>
                           {boxCount} boxes • {itemCount} items
                         </div>
+                        {boxCount > 0 && (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {boxes.filter(b => b.room === loc).map(box => (
+                              <div 
+                                key={box.id} 
+                                style={{ 
+                                  fontSize: '11px', 
+                                  backgroundColor: 'rgba(255, 255, 255, 0.04)', 
+                                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                                  borderRadius: '8px', 
+                                  padding: '4px 10px', 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: '6px',
+                                  color: 'var(--text-primary)',
+                                  fontWeight: 500
+                                }}
+                              >
+                                <span style={{ color: 'var(--primary-color)', fontWeight: 700 }}>{box.name}</span>
+                                <span style={{ opacity: 0.5 }}>ID: {box.id}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
                     
