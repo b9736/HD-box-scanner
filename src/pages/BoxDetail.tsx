@@ -13,6 +13,7 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { compressImage, blobToBase64 } from '../utils/imageUtils';
 import { ItemEditModal, ImageSourceModal, FullscreenGallery, QRCodePreviewModal } from '../components/ItemModals';
 import { ConfirmationModal } from '../components/ConfirmationModal';
+import { CameraCapture } from '../components/CameraCapture';
 
 const BoxDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -142,6 +143,7 @@ const BoxDetail = () => {
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [fullscreenImage, setFullscreenImage] = useState<{images: string[], index: number} | null>(null);
   const [imageSourceModal, setImageSourceModal] = useState<{type: 'box' | 'item' | 'receipt', itemId?: string} | null>(null);
+  const [isCustomCameraOpen, setIsCustomCameraOpen] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [isClosingDiscard, setIsClosingDiscard] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
@@ -1473,11 +1475,29 @@ const BoxDetail = () => {
         <ImageSourceModal 
           onSelect={(source) => {
             sessionStorage.setItem('uploadContext', JSON.stringify(imageSourceModal));
-            if (source === 'camera') cameraInputRef.current?.click();
-            else fileInputRef.current?.click();
+            if (source === 'camera') {
+              setIsCustomCameraOpen(true);
+            } else {
+              fileInputRef.current?.click();
+            }
             setImageSourceModal(null);
           }}
           onClose={() => setImageSourceModal(null)}
+        />
+      )}
+
+      {isCustomCameraOpen && (
+        <CameraCapture 
+          onCapture={async (file) => {
+            setIsCustomCameraOpen(false);
+            const contextJson = sessionStorage.getItem('uploadContext');
+            if (contextJson) {
+              const context = JSON.parse(contextJson);
+              sessionStorage.removeItem('uploadContext');
+              await handleUploadFiles([file], context.type, context.itemId);
+            }
+          }}
+          onClose={() => setIsCustomCameraOpen(false)}
         />
       )}
 

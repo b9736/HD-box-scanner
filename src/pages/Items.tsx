@@ -8,6 +8,7 @@ import { getTagColor } from '../utils/tagColors';
 import { ItemEditModal, ItemAddModal, ImageSourceModal, FullscreenGallery, TagManagementModal } from '../components/ItemModals';
 import { compressImage, blobToBase64 } from '../utils/imageUtils';
 import { ConfirmationModal } from '../components/ConfirmationModal';
+import { CameraCapture } from '../components/CameraCapture';
 
 const ItemsPage = () => {
   const { items, loading: itemsLoading, addItem, updateItem, removeItem } = useItems();
@@ -52,6 +53,7 @@ const ItemsPage = () => {
   }, [editingItem]);
 
   const [imageSourceModal, setImageSourceModal] = useState<any | null>(null);
+  const [isCustomCameraOpen, setIsCustomCameraOpen] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<{images: string[], index: number} | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showExpiredInItems, setShowExpiredInItems] = useState(localStorage.getItem('showExpiredStatus') !== 'false');
@@ -711,11 +713,34 @@ const ItemsPage = () => {
       {imageSourceModal && (
         <ImageSourceModal 
           onSelect={(source) => {
-            if (source === 'camera') cameraInputRef.current?.click();
-            else fileInputRef.current?.click();
+            if (source === 'camera') {
+              setIsCustomCameraOpen(true);
+            } else {
+              fileInputRef.current?.click();
+            }
             setImageSourceModal(null);
           }}
           onClose={() => setImageSourceModal(null)}
+        />
+      )}
+
+      {isCustomCameraOpen && (
+        <CameraCapture 
+          onCapture={async (file) => {
+            setIsCustomCameraOpen(false);
+            let context = uploadContextRef.current;
+            if (!context) {
+              const contextJson = localStorage.getItem('uploadContext');
+              if (contextJson) context = JSON.parse(contextJson);
+            }
+            if (context) {
+              const { type, itemId } = context;
+              uploadContextRef.current = null;
+              localStorage.removeItem('uploadContext');
+              await handleUploadFiles([file], type, itemId);
+            }
+          }}
+          onClose={() => setIsCustomCameraOpen(false)}
         />
       )}
 
