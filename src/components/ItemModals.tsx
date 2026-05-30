@@ -359,7 +359,7 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
         </div>
         
         <form onSubmit={handleSubmit} className="item-edit-form">
-          <div className="form-row-gallery" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+          <div className="form-row-gallery" style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '16px' }}>
             <div 
               className={`gallery-section ${dragType === 'item' ? 'drag-active' : ''}`} 
               style={{ flex: 1, minWidth: 0, marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: dragType === 'item' ? '2px dashed var(--primary-color)' : '2px dashed transparent', padding: '4px' }}
@@ -462,7 +462,37 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
 
           <div className="form-group">
             <label>Item Name</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} required />
+            <textarea 
+              value={name} 
+              onChange={e => {
+                setName(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }} 
+              ref={el => {
+                if (el) {
+                  el.style.height = 'auto';
+                  el.style.height = `${el.scrollHeight}px`;
+                }
+              }}
+              required 
+              rows={1}
+              style={{
+                resize: 'none',
+                overflowY: 'hidden',
+                minHeight: '44px',
+                padding: '10px 14px',
+                width: '100%',
+                borderRadius: '12px',
+                backgroundColor: 'var(--surface-hover)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                fontSize: '15px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                lineHeight: '1.4'
+              }}
+            />
           </div>
 
           <div className="form-group">
@@ -1141,7 +1171,7 @@ export const ItemAddModal: React.FC<ItemAddModalProps> = ({
         </div>
 
         <form onSubmit={handleSubmit} className="item-edit-form">
-          <div className="form-row-gallery" style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
+          <div className="form-row-gallery" style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '16px' }}>
             <div 
               className={`gallery-section ${dragType === 'item' ? 'drag-active' : ''}`} 
               style={{ flex: 1, minWidth: 0, marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: dragType === 'item' ? '2px dashed var(--primary-color)' : '2px dashed transparent', padding: '4px' }}
@@ -1191,7 +1221,39 @@ export const ItemAddModal: React.FC<ItemAddModalProps> = ({
 
           <div className="form-group">
             <label>Item Name *</label>
-            <input type="text" value={name} onChange={e => setName(e.target.value)} required placeholder="What are you adding?" autoFocus />
+            <textarea 
+              value={name} 
+              onChange={e => {
+                setName(e.target.value);
+                e.target.style.height = 'auto';
+                e.target.style.height = `${e.target.scrollHeight}px`;
+              }} 
+              ref={el => {
+                if (el) {
+                  el.style.height = 'auto';
+                  el.style.height = `${el.scrollHeight}px`;
+                }
+              }}
+              required 
+              placeholder="What are you adding?" 
+              autoFocus 
+              rows={1}
+              style={{
+                resize: 'none',
+                overflowY: 'hidden',
+                minHeight: '44px',
+                padding: '10px 14px',
+                width: '100%',
+                borderRadius: '12px',
+                backgroundColor: 'var(--surface-hover)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                fontSize: '15px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                lineHeight: '1.4'
+              }}
+            />
           </div>
 
           <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>

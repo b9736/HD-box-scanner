@@ -62,6 +62,8 @@ const BoxDetail = () => {
   // Quick Create Tags states
   const [sheetSelectedTags, setSheetSelectedTags] = useState<string[]>([]);
   const [sheetTagInput, setSheetTagInput] = useState('');
+  const [sheetImages, setSheetImages] = useState<string[]>([]);
+  const [sheetReceipts, setSheetReceipts] = useState<string[]>([]);
   const { tags: allAvailableTags, addTag: addGlobalTag } = useItemTags();
 
   // Search existing states
@@ -141,6 +143,25 @@ const BoxDetail = () => {
 
   const [uploading, setUploading] = useState(false);
   const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [tempEditImages, setTempEditImages] = useState<string[]>([]);
+  const [tempEditReceipts, setTempEditReceipts] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (editingItem) {
+      setTempEditImages(editingItem.images || []);
+      setTempEditReceipts(editingItem.receipts || []);
+    } else {
+      setTempEditImages([]);
+      setTempEditReceipts([]);
+    }
+  }, [editingItem]);
+
+  const handleDropFiles = async (type: 'item' | 'receipt', fileList: FileList) => {
+    if (!editingItem) return;
+    const files = Array.from(fileList);
+    await handleUploadFiles(files, type, editingItem.id);
+  };
+
   const [fullscreenImage, setFullscreenImage] = useState<{images: string[], index: number} | null>(null);
   const [imageSourceModal, setImageSourceModal] = useState<{type: 'box' | 'item' | 'receipt', itemId?: string} | null>(null);
   const [isCustomCameraOpen, setIsCustomCameraOpen] = useState(false);
@@ -503,6 +524,40 @@ const BoxDetail = () => {
 
   const { user } = useAuth();
 
+  const isAnyModalOpen = !!editingItem || isAddSheetOpen || !!imageSourceModal || isCustomCameraOpen || !!fullscreenImage || showQRModal || showDiscardModal || isBulkGroupSheetOpen;
+
+  useEffect(() => {
+    if (isAnyModalOpen) {
+      // Push state so back button has a state to pop
+      window.history.pushState({ modalOpen: true }, '');
+      
+      const handlePopState = (_event: PopStateEvent) => {
+        setEditingItem(null);
+        setIsAddSheetOpen(false);
+        setImageSourceModal(null);
+        setIsCustomCameraOpen(false);
+        setFullscreenImage(null);
+        setShowQRModal(false);
+        setShowDiscardModal(false);
+        setIsBulkGroupSheetOpen(false);
+      };
+
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isAnyModalOpen]);
+
+  useEffect(() => {
+    const handleCloseModalCleanup = () => {
+      if (!isAnyModalOpen && window.history.state?.modalOpen) {
+        window.history.back();
+      }
+    };
+    handleCloseModalCleanup();
+  }, [isAnyModalOpen]);
+
   useEffect(() => {
     const fetchBox = async () => {
       if (!id || !user) return; // Wait for auth to initialize
@@ -651,6 +706,8 @@ const BoxDetail = () => {
       setActiveGroupNameForAdd('');
       setSheetSelectedTags([]);
       setSheetTagInput('');
+      setSheetImages([]);
+      setSheetReceipts([]);
     }, 300);
   };
 
@@ -665,8 +722,8 @@ const BoxDetail = () => {
         id,
         '', // description
         sheetSelectedTags, // tags
-        [], // images
-        [], // receipts
+        sheetImages, // images
+        sheetReceipts, // receipts
         '', // purchaseDate
         '', // warrantyExpire
         sheetGroupName.trim()
@@ -691,8 +748,8 @@ const BoxDetail = () => {
         id,
         '',
         sheetSelectedTags,
-        [],
-        [],
+        sheetImages,
+        sheetReceipts,
         '',
         '',
         sheetGroupName.trim()
@@ -707,8 +764,8 @@ const BoxDetail = () => {
         groupName: sheetGroupName.trim(),
         description: '',
         tags: sheetSelectedTags,
-        images: [],
-        receipts: [],
+        images: sheetImages,
+        receipts: sheetReceipts,
         purchaseDate: '',
         warrantyExpire: '',
         uid: user?.uid || '',
@@ -773,7 +830,7 @@ const BoxDetail = () => {
     }
   };
 
-  const handleUploadFiles = async (files: File[], type: 'box' | 'item' | 'receipt', itemId?: string) => {
+  const handleUploadFiles = async (files: File[], type: 'box' | 'item' | 'receipt', _itemId?: string) => {
     if (files.length === 0) return;
 
     setUploading(true);
@@ -789,19 +846,17 @@ const BoxDetail = () => {
         await updateBox(id!, { images: newImages, imageUrl: newImages[0] });
         setBox({ ...box, images: newImages, imageUrl: newImages[0] });
       } else {
-        const isReceipt = type === 'receipt';
-        const field = isReceipt ? 'receipts' : 'images';
-        const urlField = isReceipt ? 'receiptUrl' : 'imageUrl';
-        
-        const currentItem = items.find(i => i.id === itemId);
-        if (currentItem) {
-          const existingList = (currentItem as any)[field] || [];
-          const newList = [...existingList, ...processedImages];
-          const updates = { [field]: newList, [urlField]: newList[0] };
-          await updateItem(itemId!, updates);
-          
-          if (editingItem && editingItem.id === itemId) {
-            setEditingItem({ ...editingItem, ...updates });
+        if (_itemId === 'new-item') {
+          if (type === 'item') {
+            setSheetImages(prev => [...prev, ...processedImages]);
+          } else {
+            setSheetReceipts(prev => [...prev, ...processedImages]);
+          }
+        } else {
+          if (type === 'item') {
+            setTempEditImages(prev => [...prev, ...processedImages]);
+          } else {
+            setTempEditReceipts(prev => [...prev, ...processedImages]);
           }
         }
       }
@@ -1139,16 +1194,111 @@ const BoxDetail = () => {
       )}
 
       <div className="items-section">
-        <div className="section-header-inline" style={{ flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+        <div className="section-header-inline" style={{ display: 'flex', flexDirection: 'column', alignItems: 'stretch', gap: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%', gap: '12px' }}>
             <div className="section-header" style={{ whiteSpace: 'nowrap' }}>Items ({items.length})</div>
             
-            {/* Tag Filter Bar */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }} className="no-print">
+              <div className="view-toggle-container" style={{ marginRight: '8px' }}>
+                <button 
+                  className="view-toggle-btn" 
+                  onClick={() => setShowDisplaySettings(true)}
+                  title="Display Settings"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <Settings size={18} />
+                </button>
+                <button 
+                  className={`view-toggle-btn ${viewType === 'grid' ? 'active' : ''}`}
+                  onClick={() => {
+                    setViewType('grid');
+                    localStorage.setItem('boxesViewType', 'grid');
+                  }}
+                  title="Grid View"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <LayoutGrid size={18} />
+                </button>
+                <button 
+                  className={`view-toggle-btn ${viewType === 'list' ? 'active' : ''}`}
+                  onClick={() => {
+                    setViewType('list');
+                    localStorage.setItem('boxesListScrollMode', 'vertical');
+                    localStorage.setItem('boxesViewType', 'list');
+                  }}
+                  title="List View"
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <List size={18} />
+                </button>
+              </div>
+
+              <button
+                onClick={toggleSelectionMode}
+                className={`select-items-btn ${isSelectionMode ? 'active' : ''}`}
+                style={{
+                  backgroundColor: isSelectionMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.04)',
+                  color: isSelectionMode ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  border: 'none',
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                {isSelectionMode ? 'Done' : 'Select'}
+              </button>
+              
+              {isSelectionMode && filteredItems.length > 0 && (
+                <button
+                  onClick={toggleSelectAll}
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.04)',
+                    color: 'var(--text-secondary)',
+                    border: 'none',
+                    padding: '8px 16px',
+                    borderRadius: '12px',
+                    fontWeight: 600,
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {filteredItems.every(item => selectedItemIds.includes(item.id)) ? 'Deselect All' : 'Select All'}
+                </button>
+              )}
+
+              {!isSelectionMode && (
+                <button 
+                  onClick={() => {
+                    setActiveGroupNameForAdd('');
+                    setSheetGroupName('');
+                    setAddSheetMode('create');
+                    setIsAddSheetOpen(true);
+                  }} 
+                  className="add-item-btn-small"
+                >
+                  <Plus size={16} /> Add
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Tag Filter Bar in its own row below title & controls */}
+          {Array.from(new Set(items.flatMap(item => item.tags || []))).length > 0 && (
             <div className="header-tag-filter no-print" style={{ 
               display: 'flex', 
               gap: '6px', 
               flexWrap: 'wrap',
-              flex: 1
+              width: '100%',
+              marginTop: '4px',
+              paddingTop: '4px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.05)'
             }}>
               {Array.from(new Set(items.flatMap(item => item.tags || []))).map(tag => {
                 const colors = getTagColor(tag);
@@ -1195,97 +1345,7 @@ const BoxDetail = () => {
                 );
               })}
             </div>
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }} className="no-print">
-            <div className="view-toggle-container" style={{ marginRight: '8px' }}>
-              <button 
-                className="view-toggle-btn" 
-                onClick={() => setShowDisplaySettings(true)}
-                title="Display Settings"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <Settings size={18} />
-              </button>
-              <button 
-                className={`view-toggle-btn ${viewType === 'grid' ? 'active' : ''}`}
-                onClick={() => {
-                  setViewType('grid');
-                  localStorage.setItem('boxesViewType', 'grid');
-                }}
-                title="Grid View"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <LayoutGrid size={18} />
-              </button>
-              <button 
-                className={`view-toggle-btn ${viewType === 'list' ? 'active' : ''}`}
-                onClick={() => {
-                  setViewType('list');
-                  localStorage.setItem('boxesListScrollMode', 'vertical');
-                  localStorage.setItem('boxesViewType', 'list');
-                }}
-                title="List View"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-              >
-                <List size={18} />
-              </button>
-            </div>
-
-            <button
-              onClick={toggleSelectionMode}
-              className={`select-items-btn ${isSelectionMode ? 'active' : ''}`}
-              style={{
-                backgroundColor: isSelectionMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.04)',
-                color: isSelectionMode ? 'var(--text-primary)' : 'var(--text-secondary)',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '12px',
-                fontWeight: 600,
-                fontSize: '13px',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                transition: 'all 0.2s'
-              }}
-            >
-              {isSelectionMode ? 'Done' : 'Select'}
-            </button>
-            
-            {isSelectionMode && filteredItems.length > 0 && (
-              <button
-                onClick={toggleSelectAll}
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.04)',
-                  color: 'var(--text-secondary)',
-                  border: 'none',
-                  padding: '8px 16px',
-                  borderRadius: '12px',
-                  fontWeight: 600,
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s'
-                }}
-              >
-                {filteredItems.every(item => selectedItemIds.includes(item.id)) ? 'Deselect All' : 'Select All'}
-              </button>
-            )}
-
-            {!isSelectionMode && (
-              <button 
-                onClick={() => {
-                  setActiveGroupNameForAdd('');
-                  setSheetGroupName('');
-                  setAddSheetMode('create');
-                  setIsAddSheetOpen(true);
-                }} 
-                className="add-item-btn-small"
-              >
-                <Plus size={16} /> Add
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
         <div className="items-list">
@@ -1468,6 +1528,13 @@ const BoxDetail = () => {
             setImageSourceModal({type, itemId: editingItem.id});
           }}
           onPreviewImage={(images, index) => setFullscreenImage({images, index})}
+          tempImages={tempEditImages}
+          tempReceipts={tempEditReceipts}
+          onRemoveTempImage={(type, index) => {
+            if (type === 'item') setTempEditImages(prev => prev.filter((_, i) => i !== index));
+            else setTempEditReceipts(prev => prev.filter((_, i) => i !== index));
+          }}
+          onDrop={handleDropFiles}
         />
       )}
 
@@ -1676,15 +1743,190 @@ const BoxDetail = () => {
                   </button>
                 </div>
 
-                <div className="form-group">
+                <div className="form-row-gallery" style={{ display: 'flex', flexDirection: 'row', gap: '16px', marginBottom: '16px' }}>
+                  <div 
+                    className="gallery-section" 
+                    style={{ flex: 1, minWidth: 0, marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: '2px dashed transparent', padding: '4px' }}
+                  >
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Item Photos</label>
+                    <div className="modal-gallery-scroll" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', paddingBottom: '8px' }}>
+                      {sheetImages.map((img, idx) => (
+                        <div 
+                          key={idx} 
+                          className="modal-gallery-item"
+                          style={{ 
+                            position: 'relative',
+                            width: '75px',
+                            height: '75px',
+                            borderRadius: '12px',
+                            overflow: 'hidden',
+                            background: 'var(--surface-hover)'
+                          }}
+                        >
+                          <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button 
+                            type="button" 
+                            className="delete-photo-btn" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSheetImages(prev => prev.filter((_, i) => i !== idx));
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: '4px',
+                              right: '4px',
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'rgba(255, 69, 58, 0.9)',
+                              color: 'white',
+                              border: 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                              zIndex: 2
+                            }}
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      <div 
+                        className="add-photo-box" 
+                        onClick={() => {
+                          setImageSourceModal({ type: 'item', itemId: 'new-item' });
+                        }}
+                        style={{
+                          flexShrink: 0,
+                          width: '75px',
+                          height: '75px',
+                          borderRadius: '12px',
+                          border: '2px dashed rgba(255, 255, 255, 0.1)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          color: 'var(--text-secondary)',
+                          background: 'rgba(255, 255, 255, 0.02)'
+                        }}
+                      >
+                        {uploading ? '...' : <Camera size={20} />}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div 
+                    className="gallery-section" 
+                    style={{ flex: 1, minWidth: 0, marginBottom: 0, textAlign: 'left', borderRadius: '12px', border: '2px dashed transparent', padding: '4px' }}
+                  >
+                    <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Receipts & Docs</label>
+                    <div className="modal-gallery-scroll" style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', paddingBottom: '8px' }}>
+                      {sheetReceipts.map((img, idx) => (
+                        <div 
+                          key={idx} 
+                          className="modal-gallery-item"
+                          style={{ 
+                            position: 'relative',
+                            width: '75px',
+                            height: '75px',
+                            borderRadius: '12px',
+                            overflow: 'hidden',
+                            background: 'var(--surface-hover)'
+                          }}
+                        >
+                          <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <button 
+                            type="button" 
+                            className="delete-photo-btn" 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSheetReceipts(prev => prev.filter((_, i) => i !== idx));
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: '4px',
+                              right: '4px',
+                              width: '20px',
+                              height: '20px',
+                              borderRadius: '50%',
+                              background: 'rgba(255, 69, 58, 0.9)',
+                              color: 'white',
+                              border: 'none',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              cursor: 'pointer',
+                              boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+                              zIndex: 2
+                            }}
+                          >
+                            <X size={12} />
+                          </button>
+                        </div>
+                      ))}
+                      <div 
+                        className="add-photo-box" 
+                        onClick={() => {
+                          setImageSourceModal({ type: 'receipt', itemId: 'new-item' });
+                        }}
+                        style={{
+                          flexShrink: 0,
+                          width: '75px',
+                          height: '75px',
+                          borderRadius: '12px',
+                          border: '2px dashed rgba(255, 255, 255, 0.1)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          color: 'var(--text-secondary)',
+                          background: 'rgba(255, 255, 255, 0.02)'
+                        }}
+                      >
+                        {uploading ? '...' : <Plus size={20} />}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                 <div className="form-group">
                   <label>Item Name</label>
-                  <input 
-                    type="text" 
+                  <textarea 
                     placeholder="e.g. Double Apple Shisha Tobacco" 
                     value={sheetItemName} 
-                    onChange={e => setSheetItemName(e.target.value)} 
+                    onChange={e => {
+                      setSheetItemName(e.target.value);
+                      e.target.style.height = 'auto';
+                      e.target.style.height = `${e.target.scrollHeight}px`;
+                    }} 
+                    ref={el => {
+                      if (el) {
+                        el.style.height = 'auto';
+                        el.style.height = `${el.scrollHeight}px`;
+                      }
+                    }}
                     required 
                     autoFocus
+                    rows={1}
+                    style={{
+                      resize: 'none',
+                      overflowY: 'hidden',
+                      minHeight: '44px',
+                      padding: '10px 14px',
+                      width: '100%',
+                      borderRadius: '12px',
+                      backgroundColor: 'var(--surface-hover)',
+                      border: '1px solid var(--border-color)',
+                      color: 'var(--text-primary)',
+                      fontSize: '15px',
+                      outline: 'none',
+                      boxSizing: 'border-box',
+                      lineHeight: '1.4'
+                    }}
                   />
                 </div>
                 

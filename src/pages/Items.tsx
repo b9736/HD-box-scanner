@@ -82,6 +82,40 @@ const ItemsPage = () => {
   const [batchTags, setBatchTags] = useState<string>('');
   const [selectedBatchTags, setSelectedBatchTags] = useState<string[]>([]);
 
+  const isAnyModalOpen = !!isAddingItem || !!editingItem || !!imageSourceModal || isCustomCameraOpen || !!fullscreenImage || showAddDiscardConfirm || isManagingTags || !!batchModal;
+
+  useEffect(() => {
+    if (isAnyModalOpen) {
+      // Push state so back button has a state to pop
+      window.history.pushState({ modalOpen: true }, '');
+      
+      const handlePopState = (_event: PopStateEvent) => {
+        setIsAddingItem(false);
+        setEditingItem(null);
+        setImageSourceModal(null);
+        setIsCustomCameraOpen(false);
+        setFullscreenImage(null);
+        setShowAddDiscardConfirm(false);
+        setIsManagingTags(false);
+        setBatchModal(null);
+      };
+
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [isAnyModalOpen]);
+
+  useEffect(() => {
+    const handleCloseModalCleanup = () => {
+      if (!isAnyModalOpen && window.history.state?.modalOpen) {
+        window.history.back();
+      }
+    };
+    handleCloseModalCleanup();
+  }, [isAnyModalOpen]);
+
   const toggleView = (type: 'grid' | 'list') => {
     setViewType(type);
     localStorage.setItem('itemsViewType', type);
