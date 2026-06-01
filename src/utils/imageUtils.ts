@@ -1,4 +1,4 @@
-export const compressImage = (file: File, maxWidth = 600, quality = 0.4): Promise<Blob> => {
+export const compressImage = (file: File, maxWidth = 1024, quality = 0.7): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -23,6 +23,8 @@ export const compressImage = (file: File, maxWidth = 600, quality = 0.4): Promis
           reject(new Error('Could not get canvas context'));
           return;
         }
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(img, 0, 0, width, height);
 
         canvas.toBlob(

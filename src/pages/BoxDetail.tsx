@@ -836,7 +836,7 @@ const BoxDetail = () => {
     setUploading(true);
     try {
       const processedImages = await Promise.all(files.map(async file => {
-        const compressedBlob = await compressImage(file, 500, 0.3);
+        const compressedBlob = await compressImage(file, 1024, 0.7);
         return await blobToBase64(compressedBlob);
       }));
 
@@ -944,7 +944,13 @@ const BoxDetail = () => {
     });
   }, [groupedItems]);
 
-  if (!box) return <div className="page-content">Loading box...</div>;
+  if (!box) {
+    return (
+      <div className="page-content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '80vh' }}>
+        <div className="loader"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="page-content">
@@ -1350,7 +1356,9 @@ const BoxDetail = () => {
 
         <div className="items-list">
           {itemsLoading ? (
-            <p className="status-text">Loading...</p>
+            <div className="status-text-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '40px 0' }}>
+              <div className="loader-small"></div>
+            </div>
           ) : items.length === 0 ? (
             <div className="empty-state">
               <p className="status-text">Empty box.</p>
