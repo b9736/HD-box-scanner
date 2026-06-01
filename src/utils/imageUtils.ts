@@ -1,4 +1,4 @@
-export const compressImage = (file: File, maxWidth = 1024, quality = 0.7): Promise<Blob> => {
+export const compressImage = (file: File, maxWidth = 2048, quality = 0.9): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
@@ -6,7 +6,6 @@ export const compressImage = (file: File, maxWidth = 1024, quality = 0.7): Promi
       const img = new Image();
       img.src = event.target?.result as string;
       img.onload = () => {
-        const canvas = document.createElement('canvas');
         let width = img.width;
         let height = img.height;
 
@@ -15,6 +14,7 @@ export const compressImage = (file: File, maxWidth = 1024, quality = 0.7): Promi
           width = maxWidth;
         }
 
+        const canvas = document.createElement('canvas');
         canvas.width = width;
         canvas.height = height;
 
@@ -25,7 +25,35 @@ export const compressImage = (file: File, maxWidth = 1024, quality = 0.7): Promi
         }
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, width, height);
+
+        let srcWidth = img.width;
+        let srcHeight = img.height;
+        
+        let offscreenCanvas = document.createElement('canvas');
+        offscreenCanvas.width = srcWidth;
+        offscreenCanvas.height = srcHeight;
+        const offscreenCtx = offscreenCanvas.getContext('2d');
+        if (offscreenCtx) {
+          offscreenCtx.drawImage(img, 0, 0);
+          
+          while (srcWidth * 0.5 > width) {
+            srcWidth = Math.round(srcWidth * 0.5);
+            srcHeight = Math.round(srcHeight * 0.5);
+            
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = srcWidth;
+            tempCanvas.height = srcHeight;
+            const tempCtx = tempCanvas.getContext('2d');
+            if (tempCtx) {
+              tempCtx.imageSmoothingEnabled = true;
+              tempCtx.imageSmoothingQuality = 'high';
+              tempCtx.drawImage(offscreenCanvas, 0, 0, offscreenCanvas.width, offscreenCanvas.height, 0, 0, srcWidth, srcHeight);
+              offscreenCanvas = tempCanvas;
+            }
+          }
+        }
+
+        ctx.drawImage(offscreenCanvas, 0, 0, offscreenCanvas.width, offscreenCanvas.height, 0, 0, width, height);
 
         canvas.toBlob(
           (blob) => {

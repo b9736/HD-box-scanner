@@ -14,11 +14,57 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
   const [cameras, setCameras] = useState<MediaDeviceInfo[]>([]);
   const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
   const [isFlashing, setIsFlashing] = useState(false);
+  const [focusCoords, setFocusCoords] = useState<{ x: number; y: number } | null>(null);
+  const [isFocusing, setIsFocusing] = useState(false);
+  const focusTimeoutRef = useRef<any>(null);
 
   const stopStream = () => {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
+    }
+  };
+
+  const handleTouchFocus = async (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!videoRef.current || loading || error) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    setFocusCoords({ x, y });
+    setIsFocusing(true);
+
+    if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
+    focusTimeoutRef.current = setTimeout(() => {
+      setIsFocusing(false);
+    }, 1000);
+
+    try {
+      const track = streamRef.current?.getVideoTracks()[0];
+      if (track && typeof track.getCapabilities === 'function') {
+        const capabilities = track.getCapabilities() as any;
+        
+        if (capabilities.focusMode && capabilities.focusMode.includes('single-shot')) {
+          await track.applyConstraints({
+            advanced: [{ focusMode: 'single-shot' } as any]
+          });
+          
+          setTimeout(async () => {
+            if (track && streamRef.current) {
+              try {
+                await track.applyConstraints({
+                  advanced: [{ focusMode: 'continuous' } as any]
+                });
+              } catch (e) {
+                // Ignore silent errors
+              }
+            }
+          }, 1500);
+        }
+      }
+    } catch (err) {
+      console.warn("Autofocus failed:", err);
     }
   };
 
@@ -32,13 +78,13 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
         video: deviceId 
           ? { 
               deviceId: { exact: deviceId },
-              width: { ideal: 1920 },
-              height: { ideal: 1080 }
+              width: { ideal: 3840 },
+              height: { ideal: 2160 }
             }
           : { 
               facingMode: { ideal: 'environment' },
-              width: { ideal: 1920 },
-              height: { ideal: 1080 }
+              width: { ideal: 3840 },
+              height: { ideal: 2160 }
             },
         audio: false
       };
@@ -96,6 +142,7 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
 
     return () => {
       stopStream();
+      if (focusTimeoutRef.current) clearTimeout(focusTimeoutRef.current);
     };
   }, []);
 
@@ -165,15 +212,43 @@ export const CameraCapture: React.FC<CameraCaptureProps> = ({ onCapture, onClose
       )}
 
       {/* Video Viewport */}
-      <div style={{
-        position: 'relative',
-        width: '100%',
-        flex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        overflow: 'hidden'
-      }}>
+      <div 
+        onClick={handleTouchFocus}
+        style={{
+          position: 'relative',
+          width: '100%',
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          overflow: 'hidden',
+          cursor: 'pointer'
+        }}
+      >
+        <style>{`
+          @keyframes focus-ring-pulse {
+            0% { transform: translate(-50%, -50%) scale(1.5); opacity: 0; }
+            50% { transform: translate(-50%, -50%) scale(1); opacity: 1; border-color: #ffcc00; }
+            100% { transform: translate(-50%, -50%) scale(1); opacity: 0.4; border-color: #ffffff; }
+          }
+        `}</style>
+
+        {isFocusing && focusCoords && (
+          <div style={{
+            position: 'absolute',
+            left: `${focusCoords.x}px`,
+            top: `${focusCoords.y}px`,
+            transform: 'translate(-50%, -50%)',
+            width: '60px',
+            height: '60px',
+            border: '2px dashed #ffcc00',
+            borderRadius: '50%',
+            zIndex: 15,
+            pointerEvents: 'none',
+            animation: 'focus-ring-pulse 0.4s ease-out forwards'
+          }} />
+        )}
+
         {loading && (
           <div style={{ position: 'absolute', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
             <div className="loader" style={{ borderColor: 'rgba(255,255,255,0.1)', borderTopColor: 'var(--primary-color)' }}></div>

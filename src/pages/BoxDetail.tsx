@@ -836,7 +836,7 @@ const BoxDetail = () => {
     setUploading(true);
     try {
       const processedImages = await Promise.all(files.map(async file => {
-        const compressedBlob = await compressImage(file, 1024, 0.7);
+        const compressedBlob = await compressImage(file, 2048, 0.9);
         return await blobToBase64(compressedBlob);
       }));
 
