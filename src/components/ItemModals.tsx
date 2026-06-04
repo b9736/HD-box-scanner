@@ -319,8 +319,9 @@ export const ItemEditModal: React.FC<ItemEditModalProps> = ({
         room: room || ''
       });
       handleClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Submit error", err);
+      alert("Error saving item: " + (err?.message || "Unknown error"));
     } finally {
       setSaving(false);
     }
@@ -1144,8 +1145,9 @@ export const ItemAddModal: React.FC<ItemAddModalProps> = ({
         room: room || ''
       });
       handleClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Save error", err);
+      alert("Error saving item: " + (err?.message || "Unknown error"));
     } finally {
       setSaving(false);
     }

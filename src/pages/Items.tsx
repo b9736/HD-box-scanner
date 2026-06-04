@@ -8,7 +8,6 @@ import { getTagColor } from '../utils/tagColors';
 import { ItemEditModal, ItemAddModal, ImageSourceModal, FullscreenGallery, TagManagementModal } from '../components/ItemModals';
 import { compressImage, blobToBase64 } from '../utils/imageUtils';
 import { ConfirmationModal } from '../components/ConfirmationModal';
-import { CameraCapture } from '../components/CameraCapture';
 
 const ItemsPage = () => {
   const { items, loading: itemsLoading, addItem, updateItem, removeItem } = useItems();
@@ -53,7 +52,6 @@ const ItemsPage = () => {
   }, [editingItem]);
 
   const [imageSourceModal, setImageSourceModal] = useState<any | null>(null);
-  const [isCustomCameraOpen, setIsCustomCameraOpen] = useState(false);
   const [fullscreenImage, setFullscreenImage] = useState<{images: string[], index: number} | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [showExpiredInItems, setShowExpiredInItems] = useState(localStorage.getItem('showExpiredStatus') !== 'false');
@@ -71,7 +69,7 @@ const ItemsPage = () => {
 
   // Synchronously capture recovery context on first render before events can delete it
   const [pendingRecoveryContext, setPendingRecoveryContext] = useState(() => {
-    const contextJson = localStorage.getItem('uploadContext');
+    const contextJson = localStorage.getItem('uploadContext') || sessionStorage.getItem('uploadContext');
     return contextJson ? JSON.parse(contextJson) : null;
   });
 
@@ -82,7 +80,7 @@ const ItemsPage = () => {
   const [batchTags, setBatchTags] = useState<string>('');
   const [selectedBatchTags, setSelectedBatchTags] = useState<string[]>([]);
 
-  const isAnyModalOpen = !!isAddingItem || !!editingItem || !!imageSourceModal || isCustomCameraOpen || !!fullscreenImage || showAddDiscardConfirm || isManagingTags || !!batchModal;
+  const isAnyModalOpen = !!isAddingItem || !!editingItem || !!imageSourceModal || !!fullscreenImage || showAddDiscardConfirm || isManagingTags || !!batchModal;
 
   useEffect(() => {
     if (isAnyModalOpen) {
@@ -93,7 +91,6 @@ const ItemsPage = () => {
         setIsAddingItem(false);
         setEditingItem(null);
         setImageSourceModal(null);
-        setIsCustomCameraOpen(false);
         setFullscreenImage(null);
         setShowAddDiscardConfirm(false);
         setIsManagingTags(false);
@@ -138,16 +135,20 @@ const ItemsPage = () => {
     if (pendingRecoveryContext) {
       if (pendingRecoveryContext.itemId === 'new-item') {
         setIsAddingItem(true);
-        localStorage.removeItem('uploadContext');
-        setPendingRecoveryContext(null);
       } else if (pendingRecoveryContext.itemId && !editingItem && items.length > 0) {
         const item = items.find(i => i.id === pendingRecoveryContext.itemId);
         if (item) {
           setEditingItem(item);
-          localStorage.removeItem('uploadContext');
-          setPendingRecoveryContext(null);
         }
       }
+
+      // Delay cleanup to allow handleImageSelect to run and consume the context first
+      const timer = setTimeout(() => {
+        localStorage.removeItem('uploadContext');
+        sessionStorage.removeItem('uploadContext');
+        setPendingRecoveryContext(null);
+      }, 2000);
+      return () => clearTimeout(timer);
     }
   }, [items, editingItem, pendingRecoveryContext]);
 
@@ -206,7 +207,7 @@ const ItemsPage = () => {
     setIsUploading(true);
     try {
       const processedImages = await Promise.all(files.map(async file => {
-        const compressedBlob = await compressImage(file, 2048, 0.9);
+        const compressedBlob = await compressImage(file, 1024, 0.7);
         return await blobToBase64(compressedBlob);
       }));
 
@@ -232,9 +233,9 @@ const ItemsPage = () => {
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    let context = uploadContextRef.current;
+    let context = uploadContextRef.current || pendingRecoveryContext;
     if (!context) {
-      const contextJson = sessionStorage.getItem('uploadContext');
+      const contextJson = sessionStorage.getItem('uploadContext') || localStorage.getItem('uploadContext');
       if (contextJson) context = JSON.parse(contextJson);
     }
 
@@ -242,7 +243,9 @@ const ItemsPage = () => {
     
     const { type, itemId } = context;
     uploadContextRef.current = null; 
+    localStorage.removeItem('uploadContext');
     sessionStorage.removeItem('uploadContext');
+    setPendingRecoveryContext(null);
     
     await handleUploadFiles(files, type, itemId);
   };
@@ -669,12 +672,17 @@ const ItemsPage = () => {
             setIsAddingItem(false);
             setTempAddImages([]);
             setTempAddReceipts([]);
+            localStorage.removeItem('uploadContext');
+            sessionStorage.removeItem('uploadContext');
+            setPendingRecoveryContext(null);
           }}
           onSave={handleSaveNewItem}
           onImageRequest={(type) => {
             const context = { type, itemId: 'new-item' };
             uploadContextRef.current = context;
-            localStorage.setItem('uploadContext', JSON.stringify(context));
+            const contextStr = JSON.stringify(context);
+            localStorage.setItem('uploadContext', contextStr);
+            sessionStorage.setItem('uploadContext', contextStr);
             setImageSourceModal({ type });
           }}
           onPreviewImage={(images, index) => setFullscreenImage({ images, index })}
@@ -724,12 +732,19 @@ const ItemsPage = () => {
             setShowExpiredInItems(checked);
             localStorage.setItem('showExpiredStatus', String(checked));
           }}
-          onClose={() => setEditingItem(null)}
+          onClose={() => {
+            setEditingItem(null);
+            localStorage.removeItem('uploadContext');
+            sessionStorage.removeItem('uploadContext');
+            setPendingRecoveryContext(null);
+          }}
           onUpdate={handleUpdateItem}
           onImageRequest={(type) => {
             const context = { type, itemId: editingItem.id };
             uploadContextRef.current = context;
-            localStorage.setItem('uploadContext', JSON.stringify(context));
+            const contextStr = JSON.stringify(context);
+            localStorage.setItem('uploadContext', contextStr);
+            sessionStorage.setItem('uploadContext', contextStr);
             setImageSourceModal({ type });
           }}
           onPreviewImage={(images, index) => setFullscreenImage({ images, index })}
@@ -748,33 +763,13 @@ const ItemsPage = () => {
         <ImageSourceModal 
           onSelect={(source) => {
             if (source === 'camera') {
-              setIsCustomCameraOpen(true);
+              cameraInputRef.current?.click();
             } else {
               fileInputRef.current?.click();
             }
             setImageSourceModal(null);
           }}
           onClose={() => setImageSourceModal(null)}
-        />
-      )}
-
-      {isCustomCameraOpen && (
-        <CameraCapture 
-          onCapture={async (file) => {
-            setIsCustomCameraOpen(false);
-            let context = uploadContextRef.current;
-            if (!context) {
-              const contextJson = localStorage.getItem('uploadContext');
-              if (contextJson) context = JSON.parse(contextJson);
-            }
-            if (context) {
-              const { type, itemId } = context;
-              uploadContextRef.current = null;
-              localStorage.removeItem('uploadContext');
-              await handleUploadFiles([file], type, itemId);
-            }
-          }}
-          onClose={() => setIsCustomCameraOpen(false)}
         />
       )}
 

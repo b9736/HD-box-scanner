@@ -26,34 +26,7 @@ export const compressImage = (file: File, maxWidth = 2048, quality = 0.9): Promi
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
 
-        let srcWidth = img.width;
-        let srcHeight = img.height;
-        
-        let offscreenCanvas = document.createElement('canvas');
-        offscreenCanvas.width = srcWidth;
-        offscreenCanvas.height = srcHeight;
-        const offscreenCtx = offscreenCanvas.getContext('2d');
-        if (offscreenCtx) {
-          offscreenCtx.drawImage(img, 0, 0);
-          
-          while (srcWidth * 0.5 > width) {
-            srcWidth = Math.round(srcWidth * 0.5);
-            srcHeight = Math.round(srcHeight * 0.5);
-            
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = srcWidth;
-            tempCanvas.height = srcHeight;
-            const tempCtx = tempCanvas.getContext('2d');
-            if (tempCtx) {
-              tempCtx.imageSmoothingEnabled = true;
-              tempCtx.imageSmoothingQuality = 'high';
-              tempCtx.drawImage(offscreenCanvas, 0, 0, offscreenCanvas.width, offscreenCanvas.height, 0, 0, srcWidth, srcHeight);
-              offscreenCanvas = tempCanvas;
-            }
-          }
-        }
-
-        ctx.drawImage(offscreenCanvas, 0, 0, offscreenCanvas.width, offscreenCanvas.height, 0, 0, width, height);
+        ctx.drawImage(img, 0, 0, width, height);
 
         canvas.toBlob(
           (blob) => {

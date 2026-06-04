@@ -13,7 +13,6 @@ import { QRCodeCanvas } from 'qrcode.react';
 import { compressImage, blobToBase64 } from '../utils/imageUtils';
 import { ItemEditModal, ImageSourceModal, FullscreenGallery, QRCodePreviewModal } from '../components/ItemModals';
 import { ConfirmationModal } from '../components/ConfirmationModal';
-import { CameraCapture } from '../components/CameraCapture';
 
 const BoxDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -164,7 +163,6 @@ const BoxDetail = () => {
 
   const [fullscreenImage, setFullscreenImage] = useState<{images: string[], index: number} | null>(null);
   const [imageSourceModal, setImageSourceModal] = useState<{type: 'box' | 'item' | 'receipt', itemId?: string} | null>(null);
-  const [isCustomCameraOpen, setIsCustomCameraOpen] = useState(false);
   const [showDiscardModal, setShowDiscardModal] = useState(false);
   const [isClosingDiscard, setIsClosingDiscard] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
@@ -524,7 +522,7 @@ const BoxDetail = () => {
 
   const { user } = useAuth();
 
-  const isAnyModalOpen = !!editingItem || isAddSheetOpen || !!imageSourceModal || isCustomCameraOpen || !!fullscreenImage || showQRModal || showDiscardModal || isBulkGroupSheetOpen;
+  const isAnyModalOpen = !!editingItem || isAddSheetOpen || !!imageSourceModal || !!fullscreenImage || showQRModal || showDiscardModal || isBulkGroupSheetOpen;
 
   useEffect(() => {
     if (isAnyModalOpen) {
@@ -535,7 +533,6 @@ const BoxDetail = () => {
         setEditingItem(null);
         setIsAddSheetOpen(false);
         setImageSourceModal(null);
-        setIsCustomCameraOpen(false);
         setFullscreenImage(null);
         setShowQRModal(false);
         setShowDiscardModal(false);
@@ -836,7 +833,7 @@ const BoxDetail = () => {
     setUploading(true);
     try {
       const processedImages = await Promise.all(files.map(async file => {
-        const compressedBlob = await compressImage(file, 2048, 0.9);
+        const compressedBlob = await compressImage(file, 1024, 0.7);
         return await blobToBase64(compressedBlob);
       }));
 
@@ -872,11 +869,15 @@ const BoxDetail = () => {
 
   const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    const contextJson = sessionStorage.getItem('uploadContext');
+    let contextJson = sessionStorage.getItem('uploadContext');
+    if (!contextJson) {
+      contextJson = localStorage.getItem('uploadContext');
+    }
     if (files.length === 0 || !contextJson) return;
 
     const context = JSON.parse(contextJson);
     sessionStorage.removeItem('uploadContext'); 
+    localStorage.removeItem('uploadContext');
     handleUploadFiles(files, context.type, context.itemId);
   };
 
@@ -1521,7 +1522,11 @@ const BoxDetail = () => {
           showExpired={showExpired}
           isUploading={uploading}
           onShowExpiredChange={handleShowExpiredChange}
-          onClose={() => setEditingItem(null)} 
+          onClose={() => {
+            setEditingItem(null);
+            localStorage.removeItem('uploadContext');
+            sessionStorage.removeItem('uploadContext');
+          }} 
           onUpdate={async (updates) => {
             try {
               await updateItem(editingItem.id, updates);
@@ -1549,30 +1554,17 @@ const BoxDetail = () => {
       {imageSourceModal && (
         <ImageSourceModal 
           onSelect={(source) => {
-            sessionStorage.setItem('uploadContext', JSON.stringify(imageSourceModal));
+            const contextStr = JSON.stringify(imageSourceModal);
+            sessionStorage.setItem('uploadContext', contextStr);
+            localStorage.setItem('uploadContext', contextStr);
             if (source === 'camera') {
-              setIsCustomCameraOpen(true);
+              cameraInputRef.current?.click();
             } else {
               fileInputRef.current?.click();
             }
             setImageSourceModal(null);
           }}
           onClose={() => setImageSourceModal(null)}
-        />
-      )}
-
-      {isCustomCameraOpen && (
-        <CameraCapture 
-          onCapture={async (file) => {
-            setIsCustomCameraOpen(false);
-            const contextJson = sessionStorage.getItem('uploadContext');
-            if (contextJson) {
-              const context = JSON.parse(contextJson);
-              sessionStorage.removeItem('uploadContext');
-              await handleUploadFiles([file], context.type, context.itemId);
-            }
-          }}
-          onClose={() => setIsCustomCameraOpen(false)}
         />
       )}
 
